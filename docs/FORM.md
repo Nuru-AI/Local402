@@ -1,5 +1,9 @@
 # Loops House form — copy each field
 
+> This is the text as submitted on 2026-11-09, with the numbers at the time of writing (12 Textile fills,
+> 15 paid calls). The current totals, with every transaction linked, are in the README: 17 Textile fills,
+> 18 paid x402 calls through buy (one in USA₮) and 3 paid calls into Sippar's shop.
+
 ## Step 1
 
 **Project name**

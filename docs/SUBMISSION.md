@@ -59,9 +59,11 @@ settlements for each service call.
 - wARS and cNGN converted cleanly. Firm quotes for USD₮→wBRL and USD₮→wCOP failed the pre-send
   simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast) while Textile's wBRL buy-side depth fell
   from about 3,700 to about 25 USD₮; the gateway cancels such a quote and frees the reservation.
-- Totals: twelve Textile fills (about 19 USD₮ quoted and filled, both directions) and fifteen paid x402
-  calls (X and Reddit search, TikTok data from an Apify Actor, Chainstack RPC, Cencori inference); one buyer FX channel (open, four voucher
-  draws, close with a wARS refund) and one payee channel (three voucher payments, one settlement).
+- Totals (one set of numbers, the same as the README's proof section):
+  seventeen Textile fills (about 24 USD₮ quoted and filled, both directions); eighteen paid x402 calls
+  (one in USA₮) into buy's sellers we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori);
+  three paid calls into Sippar's shop over its Celo rail. Twenty-three tagged transactions move Ripio's wARS or WrappedCBDC's
+  cNGN; they are listed in the README section "Ripio wFIAT on Celo mainnet".
 - Funding arrived on Base and was bridged to Celo through Relay with a gasless permit.
 
 ## How the agent helped

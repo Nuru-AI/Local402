@@ -74,6 +74,77 @@ Any x402 seller on Celo can be added.
 Honest gap: every payer so far is ours (the demo buyer and the Try it wallet); the counterparties are
 Textile's market makers, buy's sellers and Sippar.
 
+![The Try it box on sippar.network/local402](docs/img/live-try.png)
+
+The live page is served by sippar.network and its source lives in the Sippar repository; this repo's
+`app/index.html` is the earlier read-only dashboard. Besides the demo wallet, the Try it box has a
+**Connect your wallet** option: a visitor pays the seller from their own wallet, with no gas.
+
+## Ripio wFIAT on Celo mainnet
+
+Local402 moves Ripio's **wARS** (Argentine peso) and **cNGN** (Nigerian naira) on Celo mainnet. The token
+addresses are the ones Celo lists in its official local-stablecoin table
+([docs.celo.org/build/build-with-local-stablecoin](https://docs.celo.org/build/build-with-local-stablecoin)),
+as mirrored in Celopedia's contract table (`celo-org/celopedia-skills`, `references/contracts.md`):
+
+| Token | Issuer | Address on Celo | In Local402 |
+|---|---|---|---|
+| wARS | Ripio | `0x0DC4F92879B7670e5f4e4e6e3c801D229129D90D` | moved on mainnet (below) |
+| wBRL | Ripio | `0xD76f5Faf6888e24D9F04Bf92a0c8B921FE4390e0` | configured; Textile's firm quotes failed at the maker on 2026-11-09 (see Limits) |
+| wCOP | Ripio | `0x8a1D45e102e886510e891d2Ec656a708991e2D76` | configured; same maker failure |
+| wMXN, wPEN, wCLP | Ripio | `0x337E…0d34`, `0x4F34…2eBE`, `0x61D4…8651` | not configured: no Textile depth on Celo (Celopedia `wfiat-access.md`) |
+| cNGN | WrappedCBDC | `0xF6829D7393dAe24509eb1E52eE8e572e2E271a4f` | moved on mainnet (below) |
+
+Every transaction below moves wARS or cNGN, succeeded, and carries our ERC-8021 attribution tag, read
+back from each transaction on chain (20 move wARS, 3 move cNGN). Check any of them with
+`node scripts/verify-tags.mjs <txHash>`.
+
+| What happened | Tag | Transaction |
+|---|---|---|
+| Setup (our wallets): the agent buys 1,659.03 wARS on Textile | `celo_b049a252d542` | [`0xbe032e30…`](https://celoscan.io/tx/0xbe032e3070203bc985c35729c595c2dd9dfaa905c4fb797c198f5e26c9c7281b) |
+| Setup (our wallets): the agent gives the demo buyer 2,259.03 wARS | `celo_b049a252d542` | [`0xf47cbee7…`](https://celoscan.io/tx/0xf47cbee78a935a6bc68ac1b0a56d4341d8cdeb4c0607edfc5335d57b4daef6a9) |
+| v0.4 direct: the buyer's own wallet sells 1,863.01 wARS on Textile, then pays the seller itself | `celo_b049a252d542` | [`0x1451b4ef…`](https://celoscan.io/tx/0x1451b4ef8bfeaa80615d899a2554d8c63e007c896e4c848647c5ca5319c6727c) |
+| Purchase 1: the buyer gets 2,488.56 wARS on Textile | `celo_b049a252d542` | [`0x3c01212d…`](https://celoscan.io/tx/0x3c01212dc8f6bba0cb4bb977c63c7608f33d59134d16bcd22d9e4a39468481c7) |
+| Purchase 1: the buyer pays 2,488.56 wARS (v0.3 gateway) | `celo_b049a252d542` | [`0x5bdc89e5…`](https://celoscan.io/tx/0x5bdc89e5e0ea55066d6851e90950fa5dd6165ceec9903622eb0b00cbda520e00) |
+| Purchase 1: 2,488.07 wARS sold on Textile for USD₮ | `celo_b049a252d542` | [`0x1e7f262d…`](https://celoscan.io/tx/0x1e7f262d9bf820ea9a32c3187231db97eb7e43f7fa1b8640c11d203aa32da870) |
+| Purchase 2: the buyer gets 1,792.39 cNGN on Textile | `celo_b049a252d542` | [`0xd5ca4a7f…`](https://celoscan.io/tx/0xd5ca4a7f1b4c7fb9f579745fd7088bd82b07c8553fd33599fcd2383f5a47eaad) |
+| Purchase 2: the buyer pays 1,792.39 cNGN (v0.3 gateway) | `celo_b049a252d542` | [`0x434fe969…`](https://celoscan.io/tx/0x434fe9691f0777f72b7e20affdbd155349c15203475628135bb80f58f491e45c) |
+| Purchase 2: 1,792.03 cNGN sold on Textile for USD₮ | `celo_b049a252d542` | [`0x10a38cd6…`](https://celoscan.io/tx/0x10a38cd60077daddebce74ba250207db2af0157569f2921ebb56cd70851ef394) |
+| Purchase 3: the buyer gets 2,074 wARS on Textile | `celo_b049a252d542` | [`0x19280db7…`](https://celoscan.io/tx/0x19280db7124316cc4b16a4abe4e253220b3f286fa374fc59f6a4927261166128) |
+| Purchase 3: the buyer pays 2,074 wARS (v0.3 gateway) | `celo_b049a252d542` | [`0x29772480…`](https://celoscan.io/tx/0x29772480aa56c3abe845765c5b2903ffded52d1c5b4999e9e6c6fb3ad3ca11ad) |
+| Purchase 3: 2,073.59 wARS sold on Textile for USD₮ | `celo_b049a252d542` | [`0xab79122f…`](https://celoscan.io/tx/0xab79122f7439ee11459732e97ad3912dcc13efaa63552793d64d05e25149c661) |
+| Assistant pays a freelancer: Textile buys exactly 1,700 wARS | `celo_b049a252d542` | [`0x536796db…`](https://celoscan.io/tx/0x536796db3cb03a83bd7983bdd2cd32c6df68fb08235a762719a6c46a4b71c077) |
+| … and the 1,700 wARS go to the payee | `celo_b049a252d542` | [`0x8120dcf8…`](https://celoscan.io/tx/0x8120dcf883bc0b7ea018b1198bf5a7540a4015c7a1c997195072ac33349ea806) |
+| FX channel: the buyer gets 2,155.75 wARS on Textile | `celo_b049a252d542` | [`0xdb8abd9f…`](https://celoscan.io/tx/0xdb8abd9f96481673d6a1b73f032d6e2818d0d72378afd51dfb00ec4d41f067c2) |
+| FX channel open: the buyer pays 3,855.75 wARS (v0.3) | `celo_b049a252d542` | [`0xa9cfe350…`](https://celoscan.io/tx/0xa9cfe350cfeb9c755087356d92f448f11bb1576703c794acbc326cf253e0e805) |
+| FX channel open: 3,854.98 wARS sold on Textile in one fill | `celo_b049a252d542` | [`0x8d228767…`](https://celoscan.io/tx/0x8d228767ead1a5472b4f42ced1c9d9be93742224bfff5079cccd8458ee9e9131) |
+| FX channel close: one fill buys back 3,811.98 wARS | `celo_b049a252d542` | [`0x9ed9ce87…`](https://celoscan.io/tx/0x9ed9ce87fdbb57bfae55ce327f84d1dc44e31ea60433b3099618f9635b0f9ebb) |
+| FX channel close: 3,811.98 wARS refunded to the buyer | `celo_b049a252d542` | [`0x7585cbd1…`](https://celoscan.io/tx/0x7585cbd1dc0fdb015c4d5c24aefc50a3146c20d31f0559f746b5532532300ec6) |
+| Payee channel open: Textile buys exactly 1,800 wARS | `celo_b049a252d542` | [`0x6178ad6c…`](https://celoscan.io/tx/0x6178ad6c80070c514c4f4b6e8f7f3f60050de5241994aecd59dbde95541d75e5) |
+| Payee channel settle: 1,200 wARS paid in one transfer | `celo_b049a252d542` | [`0xf030201c…`](https://celoscan.io/tx/0xf030201c593662ec150a87a50300f397d37e11fab584c2ccccdd6b7588d18277) |
+| Unlock codes: the buyer pays 5,011.98 wARS once | `celo_b049a252d542` | [`0x3646163c…`](https://celoscan.io/tx/0x3646163c22f33b43a88d62e72ecb5b935a8727a769e6136c2de0431cbaeb8604) |
+| Unlock codes: 5,010.98 wARS sold on Textile, split into codes | `celo_b049a252d542` | [`0xb55ed554…`](https://celoscan.io/tx/0xb55ed55450e8cb4ba79fcfb75094b5c48e1e9e7dc048414cf590c8f25be6eab7) |
+
+## What the agent decides on its own
+
+The agent (the gateway, or an assistant through the MCP server) acts within rules written in the code:
+
+- **Refuses over its cap.** No call is paid above `maxUsd` (`src/buyer.mjs`), `LOCAL402_MAX_USD_PER_CALL`
+  (`src/mcp.mjs`) or the code wallet's own cap (`src/codewallet.mjs`); a payment to a person or a code
+  batch is refused when Textile's quote is above the `confirmUsdMax` the user agreed to.
+- **Sizes every conversion.** When the wallet's dollars fall short of a call, it sells at least Textile's
+  minimum plus 2%, and at least the shortfall plus 5%, so one fill covers the call and its rounding
+  (`src/buyer.mjs`).
+- **Keeps its own float.** When the USDC float for Sippar runs below the price, it refills it with one
+  Textile fill of at least `SIPPAR_USDC_FLOAT` (`src/sippar.mjs`); the hosted Try it wallet sells its
+  pesos for dollars in one fill when its dollars run low.
+- **Handles a failed market.** A maker's quote that fails simulation is cancelled and re-quoted; a
+  reservation is waited out using Textile's own `retryAfterMs` (up to 240 s); an expired quote is never
+  sent (`src/textile.mjs`).
+- **Never pays twice.** A Sippar call that fails after payment is presented again with the same payment
+  (`src/sippar.mjs`); a channel never signs past its budget (`src/mcp.mjs`).
+
+
 ### For people and agents holding local currency (your own wallet)
 
 1. `local402 quote x.posts.search --currency wARS` (or `GET /quote/:service?currency=wARS` on the gateway)
