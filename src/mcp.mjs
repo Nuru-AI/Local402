@@ -3,7 +3,9 @@
 // in their own currency. Both directions run through Textile FX:
 //   - dollars in, local currency out: pay a freelancer or an agent exactly N wARS / wBRL / wCOP / cNGN
 //   - local currency in, dollars out: hire a USD-priced x402 service while holding pesos or naira
-// The wallet is the agent's own key (AGENT_KEY_FILE). Every transaction carries the ERC-8021 code.
+// The wallet is the user's own key (AGENT_KEY or AGENT_KEY_FILE): every payment goes from it straight to
+// the seller's payTo, and every FX fill is made by it on Textile. Local402 holds nothing.
+// Every transaction it sends carries the ERC-8021 code.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -13,11 +15,16 @@ import { parseUnits, formatUnits, keccak256, toHex } from 'viem';
 import { signVoucher, domain as channelDomain } from './channel.mjs';
 import { TOKENS, LOCAL } from './config.mjs';
 import { loadAccount, balanceOf, transferTagged } from './chain.mjs';
-import { convert, convertExactOut, preview } from './textile.mjs';
-import { services, ratesPerUsd, payService } from './catalog.mjs';
+import { convertExactOut, preview } from './textile.mjs';
+import { services, ratesPerUsd } from './catalog.mjs';
+import { buy } from './buyer.mjs';
+import { mintCodes, codeBalance, spendCode, sweepCode } from './codewallet.mjs';
 
-const account = loadAccount();
-const server = new McpServer({ name: 'local402', version: '0.2.0' });
+// A wallet is optional: someone holding only an Unlock code needs none. Tools that pay from a wallet
+// say so when there is none.
+const account = (() => { try { return loadAccount(); } catch { return null; } })();
+const NO_WALLET = 'No wallet configured (set AGENT_KEY or AGENT_KEY_FILE). With only an Unlock code, use use_unlock_code.';
+const server = new McpServer({ name: 'local402', version: '0.4.0' });
 const text = (obj) => ({ content: [{ type: 'text', text: typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2) }] });
 const MAX_USD = Number(process.env.LOCAL402_MAX_USD_PER_CALL || '5');
 
@@ -42,52 +49,62 @@ server.tool(
   async () => text(await ratesPerUsd()),
 );
 
-const GATEWAY_URL = process.env.LOCAL402_GATEWAY || 'http://localhost:4020';
-
 server.tool(
   'use_unlock_code',
-  'Hire a data or AI service with a Local402 Unlock code (a prepaid code someone paid for in pesos, reais or naira). Needs no wallet, account, card or ID: the code is the credit.',
+  'Hire a data or AI service with a Local402 Unlock code. A code (starting unlock1_) is the key to a small wallet on Celo holding its credit in USD₮: the code\'s own wallet pays the seller directly, with no gas, account, card or ID needed.',
   {
-    code: z.string().describe('the Unlock code, starting with unlock_'),
-    serviceId: z.string().describe('an id from celo_services'),
+    code: z.string().describe('the Unlock code, starting with unlock1_'),
+    serviceId: z.string().describe('an id from celo_services (x402 sellers; sippar.* products need a wallet)'),
     input: z.any().describe('the request body the service expects (JSON)'),
   },
   async ({ code, serviceId, input }) => {
-    const r = await fetch(`${GATEWAY_URL}/call/${serviceId}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${code}` }, body: JSON.stringify(input),
-    });
-    const body = await r.json();
-    const bal = await (await fetch(`${GATEWAY_URL}/balance`, { headers: { Authorization: `Bearer ${code}` } })).json();
-    return text({ ...body, codeBalanceUSDT: bal.balanceUSDT });
+    const r = await spendCode(code, serviceId, input, { maxUsd: MAX_USD });
+    return text({ ...r, codeBalance: await codeBalance(code) });
   },
 );
 
 server.tool(
+  'unlock_code_balance',
+  'What an Unlock code\'s wallet holds on Celo.',
+  { code: z.string() },
+  async ({ code }) => text(await codeBalance(code)),
+);
+
+server.tool(
+  'make_unlock_codes',
+  'Make Unlock codes funded from this wallet: each code is a fresh key whose wallet gets eachUSDT USD₮ in one tagged transfer. Whoever holds a code owns that money (like cash or a gift-card link). The codes are returned once; nothing keeps a copy.',
+  {
+    count: z.number().int().min(1).max(20),
+    eachUSDT: z.number().min(0.01).max(5),
+    confirmUsdMax: z.number().describe('the most USD₮ the user agreed to put on codes in all'),
+    payWith: z.enum(['USDT', ...LOCAL]).default('USDT').describe('convert this currency on Textile first'),
+  },
+  async ({ count, eachUSDT, confirmUsdMax, payWith }) => {
+    if (!account) return text(NO_WALLET);
+    if (count * eachUSDT > confirmUsdMax) return text(`Refused: ${count} × ${eachUSDT} USD₮ is above the agreed ${confirmUsdMax}.`);
+    return text(await mintCodes(account, { count, eachUSDT, payWith }));
+  },
+);
+
+server.tool(
+  'sweep_unlock_code',
+  'Move everything an Unlock code holds to a wallet address, in one transfer from the code\'s own wallet (gas paid from the same USD₮).',
+  { code: z.string(), to: z.string().regex(/^0x[0-9a-fA-F]{40}$/).describe('destination wallet on Celo') },
+  async ({ code, to }) => text(await sweepCode(code, to)),
+);
+
+server.tool(
   'hire_celo_service',
-  'Hire a service on Celo and return its answer. Pays buy\'s services over x402 in USD₮, and Sippar\'s products (ids starting sippar.) in USDC on Celo, refilling a small USDC float from USD₮ in one Textile fill when short. With payWith set to a local currency, first converts that currency to USD₮ on Textile FX (at least about $1 per conversion; any change stays in the wallet).',
+  'Hire a service on Celo and return its answer, paid from this wallet straight to the seller\'s payTo. Pays buy\'s services over x402 in USD₮, and Sippar\'s products (ids starting sippar.) in USDC on Celo, refilling a small USDC float from USD₮ in one Textile fill when short. With payWith set to a local currency, first converts that currency to USD₮ on Textile FX (at least about $1 per conversion; any change stays in the wallet).',
   {
     serviceId: z.string().describe('an id from celo_services, e.g. "x.posts.search"'),
     input: z.any().describe('the request body the service expects (JSON)'),
     payWith: z.enum(['USDT', ...LOCAL]).default('USDT'),
   },
   async ({ serviceId, input, payWith }) => {
-    const svc = (await services()).find((s) => s.id === serviceId);
-    if (!svc) return text(`Unknown service ${serviceId}. Call celo_services to list them.`);
-    if (Number(svc.usd) > MAX_USD) return text(`Refused: ${svc.usd} USD is above the ${MAX_USD} USD per-call cap.`);
-    let fx = null;
-    if (payWith !== 'USDT') {
-      const usdt = await balanceOf(TOKENS.USDT.address, account.address);
-      if (usdt < BigInt(svc.atomic)) {
-        const { rates } = await ratesPerUsd();
-        const r = rates[payWith];
-        if (!r) return text(`No Textile depth for ${payWith} right now.`);
-        const localNeeded = Math.max(r.minDepositLocal * 1.02, Number(svc.usd) * r.perUsd * 1.05);
-        fx = await convert(account, { from: payWith, to: 'USDT', sellAmount: parseUnits(localNeeded.toFixed(6), TOKENS[payWith].decimals) });
-      }
-    }
-    const res = await payService(account, svc, input);
-    let body; try { body = JSON.parse(res.body); } catch { body = res.body; }
-    return text({ service: serviceId, paidUSD: Number(res.priceAtomic) / 1e6, settlement: res.settlement, textileConversion: fx, usdcRefill: res.textileRefill || undefined, result: body });
+    if (!account) return text(NO_WALLET);
+    const r = await buy(account, serviceId, input, { payWith, maxUsd: MAX_USD });
+    return text({ service: r.service, paidUSD: Number(r.paidAtomic) / 1e6, payTo: r.payTo, settlement: r.settlement, textileConversion: r.textileFill, usdcRefill: r.usdcRefill || undefined, result: r.result });
   },
 );
 
@@ -101,6 +118,7 @@ server.tool(
     confirmUsdMax: z.number().describe('the most USD₮ the user agreed to spend; refused if the quote is higher'),
   },
   async ({ to, currency, amount, confirmUsdMax }) => {
+    if (!account) return text(NO_WALLET);
     const t = TOKENS[currency];
     const buyAmount = parseUnits(amount, t.decimals);
     const p = await preview({ sellToken: TOKENS.USDT.address, buyToken: t.address, buyAmount: buyAmount.toString() });
@@ -118,6 +136,7 @@ server.tool(
   'The agent wallet on Celo and its balances.',
   {},
   async () => {
+    if (!account) return text(NO_WALLET);
     const out = { address: account.address };
     for (const sym of ['USDT', 'USDC', ...LOCAL]) out[sym] = formatUnits(await balanceOf(TOKENS[sym].address, account.address), TOKENS[sym].decimals);
     return text(out);
@@ -142,6 +161,7 @@ server.tool(
     confirmUsdMax: z.number().describe('the most USD₮ the user agreed to spend on the budget'),
   },
   async ({ to, currency, budget, confirmUsdMax }) => {
+    if (!account) return text(NO_WALLET);
     const t = TOKENS[currency];
     const buyAmount = parseUnits(budget, t.decimals);
     const p = await preview({ sellToken: TOKENS.USDT.address, buyToken: t.address, buyAmount: buyAmount.toString() });
@@ -161,6 +181,7 @@ server.tool(
   'Pay the payee of an open channel an amount in its currency. Off-chain: signs a cumulative voucher the payee can verify against this wallet; no transaction until close.',
   { channel: z.string(), amount: z.string().describe('amount in the channel currency, e.g. "250"'), memo: z.string().optional() },
   async ({ channel, amount, memo }) => {
+    if (!account) return text(NO_WALLET);
     const db = loadCh();
     const ch = db[channel];
     if (!ch || ch.state !== 'open') return text('No open channel with that id.');
@@ -180,6 +201,7 @@ server.tool(
   'Settle a payee channel: one on-chain transfer of everything the vouchers promised. Unspent budget stays in the wallet.',
   { channel: z.string() },
   async ({ channel }) => {
+    if (!account) return text(NO_WALLET);
     const db = loadCh();
     const ch = db[channel];
     if (!ch || ch.state !== 'open') return text('No open channel with that id.');

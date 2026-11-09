@@ -6,7 +6,7 @@
 // (USD₮ to USDC, at least about $1) refills it, and the next calls pay from it with no exchange at all.
 import { parseUnits } from 'viem';
 import { TOKENS, CHAIN_ID } from './config.mjs';
-import { balanceOf, transferTagged } from './chain.mjs';
+import { balanceOf, transferTagged, toSigner } from './tx.mjs';
 import { convertExactOut } from './textile.mjs';
 
 export const SIPPAR = (process.env.SIPPAR_URL || 'https://sippar.network').replace(/\/$/, '');
@@ -49,8 +49,18 @@ async function post(url, body, headers = {}) {
   return { res, text, json };
 }
 
+/** Sippar's live Celo terms for one call, from its 402 (free). */
+export async function sipparTerms(product, input) {
+  const first = await post(product.url, input);
+  if (first.res.status !== 402) return { free: true, status: first.res.status };
+  const req = (first.json?.rails || []).find((r) => r.rail === RAIL)?.paymentRequirements;
+  if (!req) throw new Error('Sippar offers no Celo payment for this product right now');
+  return { scheme: 'celo-x402 (one tagged USDC transfer from the buyer, presented as eip155:42220:<tx>)', network: req.network, asset: req.asset, symbol: 'USDC', payTo: req.payTo, amount: String(req.amount) };
+}
+
 /** Keep at least `need` USDC in the wallet, refilling the float from USD₮ in one Textile fill when short. */
-async function ensureUsdc(account, need) {
+async function ensureUsdc(signerLike, need) {
+  const account = toSigner(signerLike);
   const have = await balanceOf(TOKENS.USDC.address, account.address);
   if (have >= need) return null;
   const target = parseUnits(FLOAT_USDC.toFixed(6), 6);
@@ -64,7 +74,8 @@ async function ensureUsdc(account, need) {
  * If the answer fails after paying, the same tx is presented once more: Sippar keeps an unused payment
  * re-presentable, so a failed call is not paid twice and not lost.
  */
-export async function paySippar(account, product, input, { maxAtomic } = {}) {
+export async function paySippar(signerLike, product, input, { maxAtomic } = {}) {
+  const account = toSigner(signerLike);
   const url = product.url;
   const first = await post(url, input);
   if (first.res.status !== 402) return { paid: false, status: first.res.status, body: first.text };

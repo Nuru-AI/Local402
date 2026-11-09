@@ -1,19 +1,20 @@
 {
   "name": "local402",
-  "version": "0.3.0",
-  "description": "Pay for any x402 agent service in your own currency: local stablecoins on Celo, converted on Textile FX.",
-  "main": "src/server.mjs",
+  "version": "0.4.0",
+  "description": "Pay for any x402 agent service in your own currency, from your own wallet: local stablecoins on Celo, converted on Textile FX, paid straight to each seller. Holds nothing.",
+  "main": "src/buyer.mjs",
   "scripts": {
     "start": "node src/server.mjs",
     "register": "node scripts/register-8004.mjs",
-    "demo": "node scripts/demo.mjs",
     "prices": "node scripts/prices.mjs",
     "mcp": "node src/mcp.mjs",
     "mcp-demo": "node scripts/mcp-demo.mjs",
-    "channel-demo": "node scripts/channel-demo.mjs",
     "payee-demo": "node scripts/payee-demo.mjs",
     "sippar-quote": "node scripts/sippar-quote.mjs",
-    "sippar-demo": "node scripts/sippar-demo.mjs"
+    "sippar-demo": "node scripts/sippar-demo.mjs",
+    "test": "node --test test/*.test.mjs",
+    "direct-demo": "node scripts/direct-demo.mjs",
+    "code-demo": "node scripts/code-wallet-demo.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -29,6 +30,18 @@
     "node": ">=20"
   },
   "bin": {
-    "local402": "src/mcp.mjs"
+    "local402": "bin/local402.mjs",
+    "local402-mcp": "src/mcp.mjs"
+  },
+  "exports": {
+    ".": "./src/buyer.mjs",
+    "./buyer": "./src/buyer.mjs",
+    "./codes": "./src/codewallet.mjs",
+    "./tx": "./src/tx.mjs",
+    "./textile": "./src/textile.mjs",
+    "./x402": "./src/x402.mjs",
+    "./catalog": "./src/catalog.mjs",
+    "./config": "./src/config.mjs",
+    "./src/*": "./src/*"
   }
 }
