@@ -46,6 +46,15 @@ Any x402 seller on Celo can be added.
 Built for the Celo **Agents on Open Rails** hackathon (Stable Agents: Open Corridors · Textile FX, and
 Stable Agents: LatAm).
 
+### Try it in a browser
+
+[sippar.network/local402](https://sippar.network/local402/#try) has a **Try it** box: pick X or Reddit
+search, a Cencori answer, a Chainstack read of Celo, or a flight search, and one click pays for it on
+Celo mainnet over x402 with this repo's own x402 client. A demo wallet we fund pays for each try (3 tries per visitor per UTC day, a
+shared daily cap of 1.50 USD₮, at most 0.03 USD₮ a try). Part of that wallet's budget is held in wARS:
+when its dollars run low it sells the pesos in one Textile fill, tagged like every transaction here.
+The answer comes back with its Celoscan link, and the payment appears in the page's live activity.
+
 ## Unlock codes: access with no wallet, no account, no ID
 
 Across Latin America many people cannot open the accounts online services ask for: no card that works
