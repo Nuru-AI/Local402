@@ -1,11 +1,16 @@
 // Celo mainnet constants. Addresses: Textile address book, Celo docs, buy gateway 402 offers.
-export const CHAIN_ID = 42220;
-export const RPC_URL = process.env.CELO_RPC_URL || 'https://forno.celo.org';
-export const TEXTILE_API = process.env.TEXTILE_API || 'https://api.textilecredit.com/v2';
-export const BUY_GATEWAY = process.env.BUY_GATEWAY || 'https://gateway.usebuy.ai';
+// Runs in Node and in a browser: nothing here touches the file system.
+const env = globalThis.process?.env ?? {};
 
-// Gas is paid in USD₮ through Celo fee abstraction (CIP-64), so the wallet never needs CELO.
+export const CHAIN_ID = 42220;
+export const RPC_URL = env.CELO_RPC_URL || 'https://forno.celo.org';
+export const TEXTILE_API = env.TEXTILE_API || 'https://api.textilecredit.com/v2';
+export const BUY_GATEWAY = env.BUY_GATEWAY || 'https://gateway.usebuy.ai';
+
+// Gas is paid in USD₮ through Celo fee abstraction (CIP-64), so a wallet never needs CELO.
+// The adapter quotes gas in 18-decimal units; USD₮ itself has 6.
 export const USDT_FEE_ADAPTER = '0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72';
+export const FEE_ADAPTER_SCALE = 10n ** 12n;
 
 export const TOKENS = {
   USDT: { address: '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e', decimals: 6, eip3009: { name: 'Tether USD', version: '1' } },
@@ -17,11 +22,12 @@ export const TOKENS = {
   cNGN: { address: '0xF6829D7393dAe24509eb1E52eE8e572e2E271a4f', decimals: 6, currency: 'Nigerian naira' },
 };
 
-// Currencies a buyer can pay in. Each converts to USD₮ on Textile FX.
+// Currencies a buyer can pay in. Each converts to USD₮ on Textile FX, in the buyer's own wallet.
 export const LOCAL = ['wARS', 'wBRL', 'wCOP', 'cNGN'];
 
-// The ERC-8021 code issued at hackathon enrolment. No transaction is sent without it.
-export const ATTRIBUTION_CODE = process.env.ATTRIBUTION_CODE || '';
+// The ERC-8021 code issued to Local402 at hackathon enrolment. Every transaction a Local402 client
+// sends carries it; set ATTRIBUTION_CODE to tag with your own. No transaction is sent without one.
+export const ATTRIBUTION_CODE = env.ATTRIBUTION_CODE || 'celo_b049a252d542';
 
 export function tokenBySymbol(sym) {
   const t = TOKENS[sym];

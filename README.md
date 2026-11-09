@@ -14,6 +14,21 @@
 Next: a Celo Unlock card, bought with a bank card, USDC or any stablecoin, spending through Sippar's
 connector on dollar services and in local currencies (not built yet).
 
+## Who holds the money
+
+You do. From v0.4, Local402 never holds anyone's money:
+
+- **Your own wallet pays the seller.** It converts your pesos, reais or naira on Textile itself and pays
+  the `payTo` address each seller names in its own 402. The Local402 gateway has no wallet and loads no
+  key: it lists services, prices them in your currency and reads each seller's live terms.
+- **An Unlock code is a wallet of its own.** The money behind a code sits in a small wallet on Celo whose
+  key is the code. It is not held by Local402.
+- **Nothing can be undone by us.** Local402 cannot freeze, reverse, refund or recover a payment or a code.
+  No one stands between you and your money, and no one can fix a mistake for you.
+
+Up to v0.3 (the first rows of the proof table) the gateway held deposits as prepaid credit. That version
+is kept, not run, under [`legacy/`](legacy/v0.3-custodial/) and the git tag `v0.3.0-custodial`.
+
 Agents and the people behind them hold different money. Paid services for AI agents are priced in US
 dollars; the people and agents who want them often hold Argentine pesos, Brazilian reais, Colombian
 pesos or Nigerian naira — and a freelancer or agent in Buenos Aires or Lagos wants to be paid in theirs.
@@ -32,9 +47,9 @@ The services come from two outside shops, both paid per call on Celo:
   Cencori inference, Google Flights, and X, Reddit, TikTok and Instagram data.
 - [Sippar](https://sippar.network)'s data and AI products (ids `sippar.*`): social listening, search,
   research, company and chain data, AI answers. Sippar's shop takes Celo's native USDC on its `celo-x402`
-  rail (one transfer to the pay-to its 402 names, then `X-PAYMENT: eip155:42220:<tx>`). Local402 keeps a
-  small USDC float, refilled from USD₮ in one Textile fill when short, so each call is one tagged transfer
-  and no exchange.
+  rail (one transfer to the pay-to its 402 names, then `X-PAYMENT: eip155:42220:<tx>`). The buyer's
+  wallet keeps a small USDC float, refilled from USD₮ in one Textile fill when short, so each call is one
+  tagged transfer from the buyer and no exchange.
 
 Any x402 seller on Celo can be added.
 
@@ -50,30 +65,44 @@ Any x402 seller on Celo can be added.
 
 | Track | Where it is met |
 |---|---|
-| Open Corridors · Textile FX | Fourteen Textile fills in both directions (about 21 USD₮). FX channels turn Textile's ~$1 minimum into one fill that serves many cent-sized calls; failed maker quotes are re-quoted and reservations waited out. |
-| Stable Agents: LatAm | Ripio's wARS in and out: peso purchases, a peso FX channel with a refund in pesos, Unlock codes paid in pesos, and an assistant paying a freelancer exactly 1,700 and 1,200 wARS. |
+| Open Corridors · Textile FX | Seventeen Textile fills in both directions (about 24 USD₮), three of them made by a buyer's own wallet with no gateway in between. Textile's ~$1 minimum becomes one fill that serves many cent-sized calls; failed maker quotes are re-quoted and reservations waited out. |
+| Stable Agents: LatAm | Ripio's wARS in and out: a peso holder's own wallet converts on Textile and pays the seller directly, Unlock codes that are wallets of their own, an assistant paying a freelancer exactly 1,700 and 1,200 wARS, and (in v0.3) a peso FX channel with a refund in pesos. |
 | Open Corridors · USA₮ with x402 | The agent buys USA₮ on Textile with USD₮, then pays a buy seller in USA₮ over x402 (`exact`, EIP-3009), settled by buy's own x402 processor. |
-| Build with buy | Sixteen paid x402 calls (in USD₮, and one in USA₮) from the tagged agent wallet into buy's sellers we do not control: X, Reddit, TikTok via Apify, Chainstack, Cencori. |
+| Build with buy | Eighteen paid x402 calls (in USD₮, and one in USA₮) into buy's sellers we do not control: X, Reddit, TikTok via Apify, Chainstack, Cencori; two of them signed by a buyer's own wallet and by an Unlock code's wallet, straight to buy's pay-to. |
 | On every track | ERC-8004 agent #10063, Self Agent ID #198 on the agent wallet, the attribution tag on every transaction we send. |
 
 Honest gap: every payer so far is ours (the demo buyer and the Try it wallet); the counterparties are
 Textile's market makers, buy's sellers and Sippar.
 
-### For people and agents holding local currency (HTTP gateway)
+### For people and agents holding local currency (your own wallet)
 
-1. `GET /catalog?currency=wARS` lists services with prices in **wARS, wBRL, wCOP or cNGN** from Textile's
-   live levels.
-2. The buyer pays the gateway in that local stablecoin on Celo.
-3. The gateway converts it to USD₮ at a **firm Textile quote** (an on-chain fill against Textile's
-   independent market makers) and credits exactly what was filled.
-4. `POST /call/:service` pays the service (buy over **x402** in USD₮, Sippar in USDC on Celo) and returns
-   the answer.
+1. `local402 quote x.posts.search --currency wARS` (or `GET /quote/:service?currency=wARS` on the gateway)
+   reads the seller's own 402 for free: its `payTo`, its price, and the price in **wARS, wBRL, wCOP or
+   cNGN** from Textile's live levels.
+2. `local402 buy x.posts.search --input '{"query":"celo"}' --pay-with wARS`: when the wallet holds too
+   little USD₮, it makes one **firm Textile fill** itself (an on-chain fill against Textile's independent
+   market makers, at least about $1), then pays the seller directly: buy over **x402** in USD₮, Sippar in
+   USDC on Celo. What the fill bought and the call did not spend stays in the buyer's wallet for the next
+   calls.
+
+The same two calls are a library (`import { quote, buy } from 'local402'`) and run in a browser with a
+Celo wallet such as MiniPay or Valora:
+
+```js
+import { buy } from 'local402';
+import { fromInjected } from 'local402/tx';
+const wallet = await fromInjected(window.ethereum);   // the buyer's own wallet
+const r = await buy(wallet, 'x.posts.search', { query: 'celo' }, { payWith: 'wARS', maxUsd: 0.05 });
+```
+
+The browser path uses the wallet's injected provider and pays gas in USD₮ through Celo fee abstraction;
+it has not been tested on a phone yet.
 
 ### For Claude and other AI assistants (MCP server)
 
 ```json
 { "mcpServers": { "local402": { "command": "node", "args": ["/path/to/Local402/src/mcp.mjs"],
-  "env": { "AGENT_KEY_FILE": "/path/to/agent.key", "ATTRIBUTION_CODE": "celo_…" } } } }
+  "env": { "AGENT_KEY_FILE": "/path/to/agent.key" } } } }
 ```
 
 | Tool | What it does |
@@ -82,6 +111,10 @@ Textile's market makers, buy's sellers and Sippar.
 | `hire_celo_service` | hire one and return its answer; pay in USD₮, or in pesos/naira converted on Textile first; `sippar.*` products are paid in USDC on Celo |
 | `pay_in_local_currency` | pay a person or agent exactly N wARS / wBRL / wCOP / cNGN, funded from dollars via Textile, with a spend cap the user agreed to |
 | `celo_rates`, `wallet` | live Textile rates; the agent wallet's balances |
+| `use_unlock_code`, `unlock_code_balance` | spend or check an Unlock code; works with no wallet configured |
+| `make_unlock_codes`, `sweep_unlock_code` | fund codes from the agent wallet (capped by an amount the user agreed); move what a code holds to an address |
+
+Every payment goes from the configured wallet (or a code's wallet) straight to the seller.
 
 Built for the Celo **Agents on Open Rails** hackathon (Stable Agents: Open Corridors · Textile FX, and
 Stable Agents: LatAm).
@@ -90,70 +123,88 @@ Stable Agents: LatAm).
 
 Across Latin America many people cannot open the accounts online services ask for: no card that works
 abroad, no dollar income, no identity document a sign-up flow accepts. Every x402 service already
-skips the account. Local402 skips the rest. Someone who holds pesos pays once (a shop, a friend, a
-community group, an NGO), splits the credit into **Unlock codes**, and hands them out over WhatsApp or
-on paper. Whoever holds a code buys data and AI with it, from any HTTP client or straight from Claude
-through the MCP tool `use_unlock_code`. The code is the credit; nothing else is asked.
+skips the account. Local402 skips the rest. Someone who holds pesos (a shop, a friend, a community
+group, an NGO) makes **Unlock codes** and hands them out over WhatsApp or on paper. Whoever holds a code
+buys data and AI with it, from any HTTP client or straight from Claude through the MCP tool
+`use_unlock_code`. Nothing else is asked.
 
-Codes are closed-loop prepaid credit: they buy services through Local402 and cannot be cashed out.
+**A code is the money, like cash.** Each code is the private key of a small, fresh wallet on Celo that
+holds the code's credit in USD₮. Local402 does not keep a list of codes and never sees one.
 
-| Endpoint / tool | |
+- **Lose the code and the money is gone.** No one, Local402 included, can recover it.
+- **Anyone who sees the code can take the money.** Share it only with the person it is for, the way you
+  would hand over a banknote.
+- **Whoever made a code had it too.** If you receive a code and want the money to be yours alone, sweep
+  it to a wallet of your own.
+- **A mistyped code fails its checksum** instead of opening some other wallet.
+
+| Command / tool | |
 |---|---|
-| `POST /unlock-codes {count, eachUSDT}` | split a credit into codes (Bearer: the credit token from `/deposit`) |
-| `POST /call/:service` with `Authorization: Bearer unlock_…` | spend a code |
-| MCP `use_unlock_code {code, serviceId, input}` | the same, from Claude, with no wallet configured |
+| `local402 code mint --count 5 --each 0.25 [--pay-with wARS] --out codes.json` | make codes funded from your wallet (one tagged USD₮ transfer each; pesos are converted on Textile first) |
+| `local402 code buy <service> --input '{…}' --code-file codes.json` | spend: the code's wallet signs an x402 authorization to the seller's `payTo`; the seller's facilitator submits it, so the code needs no gas |
+| `local402 code sweep --to 0x… --code-file codes.json` | move everything left to any address, in one transfer from the code's wallet (gas paid in USD₮ from the same balance; under $0.001 stays behind) |
+| `local402 code balance --code-file codes.json` | what the code's wallet holds |
+| MCP `use_unlock_code` · `unlock_code_balance` · `make_unlock_codes` · `sweep_unlock_code` | the same, from Claude |
 
-## FX channels: Textile's minimum as a channel open
+Code format: `unlock1_` followed by 58 characters of lowercase Crockford base32 that encode the 32-byte
+key and a 4-byte checksum (the start of its keccak256). Case, spaces and hyphens are ignored, and `i`,
+`l` and `o` read as `1`, `1` and `0`, so a code copied by hand or read aloud still works. A code spends
+on x402 sellers paid in USD₮; Sippar's products take a USDC transfer and need a wallet.
 
-A Textile conversion has a floor (about $1) and a fixed cost (spread, fee, gas). Paying for a $0.005
-call through its own conversion would be absurd. So Local402 treats one conversion as a **channel open**,
-the way an MPP session or an x402 batch-settlement escrow does:
+## Payee channels: Textile's minimum as a channel open
 
-- **Open** — one Textile fill turns the buyer's pesos or naira into a USD₮ balance (≥ $1).
-- **Draw** — each call carries an EIP-712 **cumulative voucher** signed by the buyer's wallet
-  (`Voucher{channel, cumulative}`). No transaction, no FX. Calling without one returns a 402 that names
-  the exact cumulative to sign. The gateway advances from its own record, never the sender's.
-- **Close** — a signed `Close{channel, cumulative}`; the unspent balance goes back in the buyer's own
-  currency through one more Textile fill (or in USD₮ if it is under Textile's minimum).
+A Textile conversion has a floor (about $1) and a fixed cost (spread, fee, gas). For an AI assistant
+paying people many small amounts in their own currency, `open_payee_channel` buys the whole budget (say
+1,800 wARS) in one fill in the assistant's own wallet, `channel_pay` signs a cumulative EIP-712 voucher
+per payment that the payee can verify (no transaction, no FX), and `close_payee_channel` settles
+everything in one transfer. Unspent budget stays in the assistant's wallet.
 
-The same shape runs the other way for an AI assistant paying people: `open_payee_channel` buys the whole
-budget (say 1,800 wARS) in one fill, `channel_pay` signs a voucher per payment that the payee can
-verify, and `close_payee_channel` settles everything in one transfer.
+v0.3 also ran FX channels for buyers, but the gateway held the channel's funds. v0.4 removes them; the
+buyer's own wallet now keeps the float a fill buys, which serves the same purpose with nothing held.
 
-Two fills and one settlement for any number of calls: fewer, larger Textile trades, one spread instead
-of many. Textile's 60-second firm quotes and a maker that can fail at simulation are handled too: the
-client re-quotes, and waits out its own reservation using Textile's `retryAfterMs`.
+### Channels with an escrow: checked on Celo, not built
 
-| Endpoint / tool | |
-|---|---|
-| `POST /deposit {txHash}` | opens the channel; returns its id (the deposit tx), owner, and the EIP-712 domain |
-| `POST /channel/:id/call/:service` | `X-Voucher: base64({cumulative, signature})`; 402 without one |
-| `POST /channel/:id/close {cumulative, signature}` | refund the rest in the owner's currency |
-| MCP `open_payee_channel` · `channel_pay` · `close_payee_channel` | the same, paying a person or agent |
+Coinbase's x402 batch-settlement escrow (`x402BatchSettlement`, the contract Sippar used on Base) is
+**already deployed on Celo** at the same address, `0x4020074e9dF2ce1deE5A9C1b5c3f541D02a10003`, verified
+on Celo's Blockscout. Its bytecode matches Base's except for the chain id and its signing domain
+("x402 Batch Settlement", version 1, chain 42220), and its gasless deposit helper
+(`0x4020806089470a89826cB9fB1f4059150b550004`) is byte-identical. No transaction has used either on Celo
+yet (checked 2026-11-09).
+
+How it would work: the buyer's wallet deposits USD₮ or USDC (both support the `receiveWithAuthorization`
+the deposit uses; wARS and cNGN do not, so the buyer's own Textile fill comes first), signs a cumulative
+voucher per call, and the seller claims what the vouchers allow. The escrow sends money only to the
+seller (what was claimed) or back to the buyer, and the buyer can take back the unspent balance after the
+channel's withdraw delay without anyone's help. The open question is the receiver: neither buy nor Sippar
+accepts this scheme on Celo today, so a channel needs a seller that does.
 
 ## How it works
 
 ```
-buyer (wARS) ──transfer──▶ gateway ──Textile RFQ: wARS→USD₮──▶ gateway (USD₮)
-                                                     │
-                     answer ◀── x402 (EIP-3009, USD₮) ┴──▶ service (buy gateway: Chainstack, Cencori, …)
-                     answer ◀── one tagged USDC transfer ──▶ Sippar product (celo-x402: eip155:42220:<tx>)
+buyer's wallet (wARS) ──Textile RFQ: wARS→USD₮ (the buyer's own fill)──▶ buyer's wallet (USD₮)
+        │
+        ├── x402 (EIP-3009, USD₮, signed by the buyer) ──▶ seller's payTo (buy: Chainstack, Cencori, X, …) ──▶ answer
+        └── one tagged USDC transfer from the buyer ──────▶ Sippar's payTo (celo-x402: eip155:42220:<tx>) ──▶ answer
+
+Local402 gateway: catalogue, local prices, each seller's live terms. No wallet, no key.
 ```
 
-- **FX:** Textile's v2 RFQ API, keyless. The gateway proves control of its wallet with one EIP-712
-  `TakerControl` signature, asks for a firm quote for the exact deposit, approves, re-checks the expiry
-  and broadcasts the returned `transactions.swap`.
-- **Pricing:** the catalogue converts each USD price with Textile's public `/v2/rfq/levels` ladder. The
-  deposit itself converts at the firm quote, so the credit is exactly what Textile filled.
-- **Payments out:** a minimal x402 `exact` client signs an EIP-3009 `transferWithAuthorization` in USD₮;
-  the seller's facilitator settles it. For Sippar (`src/sippar.mjs`) the gateway reads the Celo
-  requirement from Sippar's 402, sends one USDC transfer carrying the attribution tag, and presents the
-  tx; if the answer fails, the same tx is presented again rather than paying twice.
-- **Gas:** paid in USD₮ through Celo fee abstraction (CIP-64), so the gateway never needs CELO.
-- **Attribution:** every transaction the gateway sends carries the ERC-8021 tag issued at hackathon
-  enrolment (`@celo/attribution-tags`); the code refuses to send an untagged transaction. x402
-  settlements are submitted by the seller's facilitator and cannot carry a tag yet.
-- **Identity:** the gateway wallet is registered in the ERC-8004 Identity Registry on Celo
+- **FX:** Textile's v2 RFQ API, keyless. The buyer's wallet proves control of itself with one EIP-712
+  `TakerControl` signature, asks for a firm quote, approves, re-checks the expiry and broadcasts the
+  returned `transactions.swap` itself.
+- **Pricing:** the catalogue converts each USD price with Textile's public `/v2/rfq/levels` ladder; the
+  fill itself is at the firm quote the buyer's wallet takes.
+- **Payments:** a minimal x402 `exact` client signs an EIP-3009 `transferWithAuthorization` in USD₮ from
+  the buyer's wallet to the seller's `payTo`; the seller's facilitator settles it. For buy's catalogue the
+  `payTo` is buy's own (buy is the merchant for its sellers). For Sippar (`src/sippar.mjs`) the buyer's
+  wallet reads the Celo requirement from Sippar's 402, sends one USDC transfer carrying the attribution
+  tag, and presents the tx; if the answer fails, the same tx is presented again rather than paying twice.
+- **Gas:** paid in USD₮ through Celo fee abstraction (CIP-64). wARS, wBRL, wCOP and cNGN are not Celo fee
+  currencies, so a wallet holding only pesos needs about a cent of USD₮ (or some CELO) for its first fill.
+- **Attribution:** every transaction a Local402 client sends carries the ERC-8021 tag issued at hackathon
+  enrolment (`@celo/attribution-tags`, override with `ATTRIBUTION_CODE`); the code refuses to send an
+  untagged transaction. x402 settlements are submitted by the seller's facilitator and cannot carry a tag.
+- **Identity:** the agent wallet is registered in the ERC-8004 Identity Registry on Celo
   (`agent.json`, `scripts/register-8004.mjs`) and holds a **Self Agent ID** (#198): a soulbound
   proof-of-human bound to a passport zero-knowledge proof, so anyone can check that a real, unique person
   stands behind the agent. No name, nationality or age was disclosed. Self sits on the agent side only:
@@ -163,34 +214,53 @@ buyer (wARS) ──transfer──▶ gateway ──Textile RFQ: wARS→USD₮─
 
 ```bash
 npm install
-echo 0x<private key> > agent.key && chmod 600 agent.key   # the gateway wallet; fund it with a little USD₮ on Celo
-export ATTRIBUTION_CODE=<your ERC-8021 code>
-npm run prices      # read-only: live rates and services priced in local currency
-npm start           # the gateway on :4020
+export AGENT_KEY=0x<your key>          # or AGENT_KEY_FILE=agent.key; your wallet, with a little USD₮ on Celo
+npx local402 services flights --currency wARS
+npx local402 quote x.posts.search --currency wARS
+npx local402 buy x.posts.search --input '{"query":"celo"}' --pay-with wARS --max-usd 0.05
+npm start                               # the keyless gateway on :4020 (catalogue and quotes only)
+npm test
 ```
 
-| Endpoint | What it does |
+| Gateway endpoint | What it does |
 |---|---|
-| `GET /` | gateway address, currencies, flow |
-| `GET /rates` | local units per USD₮ from Textile levels, with min and max deposit |
+| `GET /` | what the gateway is, and that it holds nothing |
+| `GET /rates` | local units per USD₮ from Textile levels, with the smallest and largest fill |
 | `GET /catalog?currency=wARS&q=flights` | services with their price in the chosen currency |
-| `POST /deposit {txHash}` | credits a local-currency transfer to the gateway after converting it on Textile; returns a credit token once |
-| `POST /call/:serviceId` | `Authorization: Bearer <credit>`; pays the service over x402 and returns its answer; refunds the credit if the service fails |
-| `GET /balance` | remaining credit |
-| `GET /history` | deposits, Textile fills and calls |
+| `GET /quote/:serviceId?currency=wARS` (or `POST` with the request body) | the seller's live `payTo` and price, read from its 402, and the Textile fill the buyer's wallet would make |
+| `/deposit`, `/call`, `/balance`, `/unlock-codes`, `/channel/…` | removed in v0.4; answer 410 |
 
 `node scripts/sippar-quote.mjs reddit-social` reads Sippar's catalogue and one product's Celo price for
-free; `node scripts/sippar-demo.mjs` buys two Sippar products on mainnet.
-
-`npm run demo` runs the whole flow on mainnet with a demo buyer wallet (funded by us, so it is not an
-independent user).
+free. The two v0.4 mainnet runs below are `scripts/direct-demo.mjs` and `scripts/code-wallet-demo.mjs`;
+`node scripts/verify-tags.mjs <tx…>` checks the attribution tag on any transaction.
 
 ## Proof on Celo mainnet (2026-11-09)
 
-Gateway / payTo `0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B` · ERC-8004 agent
+Agent wallet `0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B` (the v0.3 gateway) · ERC-8004 agent
 [#10063](https://8004scan.io/agents/celo/10063) · demo buyer `0xa9a8fdf5b540489B22B65740310D5f9B66a04328`.
-Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542` (checked with
-`verifyTx` from `@celo/attribution-tags`).
+Every transaction our wallets sent carries the ERC-8021 code `celo_b049a252d542` (checked with
+`verifyTx` from `@celo/attribution-tags`). Both wallets are ours and funded by us.
+
+**v0.4: nothing held by Local402**
+
+| Step | Transaction |
+|---|---|
+| **Direct payTo, paid in pesos (`scripts/direct-demo.mjs`)** | |
+| Setup between our own wallets: the agent buys 1,659.03 wARS on Textile and gives the buyer 2,259.03 wARS; the buyer keeps only 0.012 USD₮ for gas | [`0xbe032e30…`](https://celoscan.io/tx/0xbe032e3070203bc985c35729c595c2dd9dfaa905c4fb797c198f5e26c9c7281b) · [`0xf47cbee7…`](https://celoscan.io/tx/0xf47cbee78a935a6bc68ac1b0a56d4341d8cdeb4c0607edfc5335d57b4daef6a9) · [`0x72fbde74…`](https://celoscan.io/tx/0x72fbde743d3452de553d464245c427c4b50fd71de4870ce96c43cae18e2755fd) |
+| The buyer's own wallet sells 1,863.01 wARS for 1.123007 USD₮ (Textile fill, maker `0x25A5c1Ae…`) | [`0x1451b4ef…`](https://celoscan.io/tx/0x1451b4ef8bfeaa80615d899a2554d8c63e007c896e4c848647c5ca5319c6727c) |
+| … buys 1.05 USDC for 1.051039 USD₮ (Textile fill, maker `0xF0d95682…`) | [`0x6943af89…`](https://celoscan.io/tx/0x6943af89a6a1f2a8521a527c0e3f73bef3635c119b3bc494172d81019d13a4b1) |
+| … pays `sippar.news-search` 0.01 USDC at Sippar's pay-to `0x65C955A6…`, one tagged transfer sent by the buyer, answered | [`0x37e3e549…`](https://celoscan.io/tx/0x37e3e54986f3c8df6eb86020a4f57c112c9d5f9fa5c1324e089bc806c8fd46ef) |
+| … pays X post search 0.005 USD₮ over x402 to buy's pay-to `0x20faAca5…`, signed by the buyer, settled by buy's facilitator | [`0xdf52d7b5…`](https://celoscan.io/tx/0xdf52d7b522eab738422be54741886db3228b09c3df7128cc442279da026d7912) |
+| **Unlock code as a wallet (`scripts/code-wallet-demo.mjs`)** | |
+| The funder (agent wallet) makes a code and funds its fresh wallet `0x4E57B2f6…` with 0.05 USD₮ | [`0x02c8d1f2…`](https://celoscan.io/tx/0x02c8d1f210fe0d24f869c76b30e71646c6e23e02e8f81bfe9a03f209f9dadd9b) |
+| The code's wallet pays Reddit search 0.005 USD₮ over x402 to buy's pay-to, with no gas of its own | [`0xd3eb0488…`](https://celoscan.io/tx/0xd3eb04889c901c1746d17b9dfd5bf087226acbca11389f447922d8c7ffa07cbe) |
+| The holder sweeps 0.042743 USD₮ to an address of their choice, gas paid from the same USD₮; 0.000797 USD₮ stays behind | [`0x2bb03aa9…`](https://celoscan.io/tx/0x2bb03aa90c408dc53e9e016e03a840e8d27ae4c6acb37dddb382d93715da7c36) |
+
+Every transaction above that our wallets or the code's wallet sent carries `celo_b049a252d542`; the two
+x402 settlements were sent by buy's facilitator and carry none. In the direct run, what the fills bought
+and the calls did not spend (1.04 USDC, 0.067 USD₮ and 395.64 wARS) stayed in the buyer's own wallet.
+
+**v0.3: through the custodial gateway (now in `legacy/`)**
 
 | Step | Transaction |
 |---|---|
@@ -252,17 +322,21 @@ Sippar answered the Reddit call 8 seconds after payment, but the client's connec
 answer arrived. Presenting the same transaction once more returned that answer at no charge, marked
 `redelivered`, so a timeout costs neither a second payment nor the answer.
 
-Totals: fourteen Textile fills (about 21 USD₮ quoted and filled, both directions), sixteen paid x402
-calls (one of them in USA₮) into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori), and two paid
+Totals: seventeen Textile fills (about 24 USD₮ quoted and filled, both directions), eighteen paid x402
+calls (one of them in USA₮) into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori), and three paid
 calls into Sippar's shop over its `celo-x402` rail. Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
 paid x402 calls into services we do not control. Textile's 2 bps fee went to its fee recipient on each fill.
 
 ## Limits, plainly
 
-- A hackathon prototype. Deposits become prepaid credit held by the gateway wallet until spent.
-- The demo buyer wallet is ours and funded by us; it is not an independent user.
-- Textile's minimum is about $1 per conversion, so deposits are at least that; calls then draw down the
-  credit a few cents at a time.
+- A hackathon prototype. The demo buyer wallet and the Unlock-code funder are ours and funded by us; they
+  are not independent users.
+- Textile's minimum is about $1 per conversion, so a buyer's first fill is at least that; the rest stays
+  in the buyer's wallet and pays the next calls a few cents at a time.
+- A wallet holding only pesos or naira needs about a cent of USD₮ (or some CELO) for gas, because those
+  tokens are not Celo fee currencies.
+- The browser path (MiniPay, Valora) is built on the wallet's standard provider but not yet tested on a
+  phone.
 - wARS and cNGN converted cleanly. USD₮ → wBRL and USD₮ → wCOP firm quotes came back but failed the
   pre-send simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast); at the same time Textile's
   wBRL buy-side depth fell from about 3,700 to about 25 USD₮. The gateway cancels such a quote and frees
@@ -270,6 +344,8 @@ paid x402 calls into services we do not control. Textile's 2 bps fee went to its
 
 ## Next
 
+- FX channels with an escrow, on the x402 batch-settlement contract already deployed on Celo (see
+  [Channels with an escrow](#channels-with-an-escrow-checked-on-celo-not-built)), once a seller accepts it.
 - Accept the local-currency payment directly over x402 through Celo's hosted facilitator (it already
   lists wARS, wBRL and wCOP), instead of transfer-then-deposit.
 - More upstreams: any x402 seller, and agents listed in the ERC-8004 registry.

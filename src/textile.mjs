@@ -1,9 +1,9 @@
 // Textile FX taker client: preview, firm quote (keyless, proof of control), execute, report.
 // Docs: https://docs.textilecredit.com/api/v2/rfq
-import crypto from 'node:crypto';
-import { toHex, decodeFunctionData, erc20Abi } from 'viem';
+// Runs in the buyer's own wallet: the taker is whoever signs. Node or browser.
+import { decodeFunctionData, erc20Abi } from 'viem';
 import { TEXTILE_API, CHAIN_ID, TOKENS } from './config.mjs';
-import { ensureAllowance, sendTagged } from './chain.mjs';
+import { ensureAllowance, sendTagged, toSigner, randomHex32 } from './tx.mjs';
 
 async function post(path, body, headers = {}) {
   const res = await fetch(`${TEXTILE_API}${path}`, {
@@ -29,7 +29,7 @@ export async function preview({ sellToken, buyToken, sellAmount, buyAmount }) {
 }
 
 async function takerProof(account) {
-  const nonce = toHex(crypto.randomBytes(32));
+  const nonce = randomHex32();
   const issuedAt = Date.now();
   const signature = await account.signTypedData({
     domain: { name: 'Textile Taker Control', version: '1', chainId: CHAIN_ID },
@@ -44,7 +44,8 @@ async function takerProof(account) {
 }
 
 /** Firm quote bound to the account. Sends unsigned first; signs proof of control only when asked. */
-export async function firmQuote(account, { sellToken, buyToken, sellAmount, buyAmount }) {
+export async function firmQuote(signerLike, { sellToken, buyToken, sellAmount, buyAmount }) {
+  const account = toSigner(signerLike);
   const body = { chainId: CHAIN_ID, sellToken, buyToken, taker: account.address, ...(sellAmount ? { sellAmount } : { buyAmount }) };
   let status;
   let json;
