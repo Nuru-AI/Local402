@@ -88,10 +88,18 @@ export async function execute(account, q) {
   return { txHash: receipt.transactionHash, sold: quote.takerPays, bought: quote.buyAmount, fee: quote.feeAmount, rfqId };
 }
 
-/** Convert an exact amount of one token into another on Textile. */
+/** Convert an exact amount of one token into another on Textile (exact input). */
 export async function convert(account, { from, to, sellAmount }) {
   const q = await firmQuote(account, { sellToken: TOKENS[from].address, buyToken: TOKENS[to].address, sellAmount: sellAmount.toString() });
   if (q.status !== 'quoted') throw new Error(`Textile: no quote (${q.reason}); available ${q.availableSellAmount ?? 'unknown'}`);
+  q.sellToken = TOKENS[from].address;
+  return execute(account, q);
+}
+
+/** Receive exactly `buyAmount` of `to`, paying whatever `from` the makers ask (exact output). */
+export async function convertExactOut(account, { from, to, buyAmount }) {
+  const q = await firmQuote(account, { sellToken: TOKENS[from].address, buyToken: TOKENS[to].address, buyAmount: buyAmount.toString() });
+  if (q.status !== 'quoted') throw new Error(`Textile: no quote (${q.reason}); available ${q.availableBuyAmount ?? q.availableSellAmount ?? 'unknown'}`);
   q.sellToken = TOKENS[from].address;
   return execute(account, q);
 }

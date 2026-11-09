@@ -1,7 +1,7 @@
 # Local402 — Agents on Open Rails submission
 
 **Project:** Local402
-**Tagline:** Pay for any agent service like a local: in pesos, reais or naira, on Celo.
+**Tagline:** Agents that pay like a local: hire services and people on Celo in pesos, reais, naira or dollars, with Textile FX in between.
 **Tracks:** Stable Agents: Open Corridors · Textile FX (primary) · Stable Agents: LatAm (secondary)
 **Repo:** https://github.com/Nuru-AI/Local402 (MIT)
 **Network:** Celo mainnet (42220)
@@ -11,9 +11,15 @@
 
 ## What it does
 
-Agent services are priced in dollars and paid in USD stablecoins; many of the people and agents who
-want them hold pesos, reais or naira. Local402 is an open-source gateway that lets them pay in their
-own currency:
+Agent services are priced in dollars; many of the people and agents who want them hold pesos, reais or
+naira, and a freelancer or agent in Buenos Aires or Lagos wants to be paid in theirs. Local402 connects
+the two sides on Celo, with a firm Textile FX quote in every crossing. It works both ways:
+
+- **Dollars in, local currency out — an MCP server for Claude and other assistants.** `celo_services`
+  finds services on Celo; `hire_celo_service` hires one and returns its answer (paying in USD₮, or in
+  pesos/naira converted on Textile first); `pay_in_local_currency` pays a person or agent exactly N wARS,
+  wBRL, wCOP or cNGN, buying that exact amount on Textile from dollars, within a spend cap the user agreed.
+- **Local currency in, dollar services out — an HTTP gateway:**
 
 1. `GET /catalog?currency=wARS` lists about 145 x402 services from buy's Celo catalogue (Chainstack RPC,
    Cencori inference, Google Flights, X, Reddit, TikTok and Instagram data), each priced in wARS, wBRL,
@@ -42,12 +48,13 @@ settlements for each service call.
 - wARS and cNGN converted cleanly. Firm quotes for USD₮→wBRL and USD₮→wCOP failed the pre-send
   simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast) while Textile's wBRL buy-side depth fell
   from about 3,700 to about 25 USD₮; the gateway cancels such a quote and frees the reservation.
-- Totals: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers) and
-  seven paid x402 calls (X search, Chainstack RPC, Cencori inference).
+- Totals: seven Textile fills (about 9.1 USD₮ quoted and filled, both directions, two market makers) and
+  eight paid x402 calls (X and Reddit search, Chainstack RPC, Cencori inference).
 - Funding arrived on Base and was bridged to Celo through Relay with a gasless permit.
 
 ## How the agent helped
 
-Built in one session by Claude Code: it researched the tracks and Textile's API through Sippar's
-connector (page reads, GitHub and skill-registry lookups), used Celopedia and celo-org/agent-skills as
-references, wrote the gateway, registered the ERC-8004 identity, and ran the mainnet purchases.
+Our coding agent (Claude Code) worked alongside the team throughout: it researched the tracks, Textile's
+RFQ API and contracts, and buy's catalogue through the Sippar connector (page reads, GitHub and
+skill-registry lookups), used Celopedia and celo-org/agent-skills as references, implemented the gateway
+and the MCP server, registered the ERC-8004 identity, and ran and verified the mainnet transactions.

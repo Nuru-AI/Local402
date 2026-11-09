@@ -2,20 +2,44 @@
 
 **Pay for any agent service like a local: in your own currency.**
 
-Most paid APIs for AI agents are priced in US dollars and paid in USD stablecoins. Many of the people
-and agents who want them hold Argentine pesos, Brazilian reais, Colombian pesos or Nigerian naira.
-Local402 is a small open-source gateway on Celo that closes that gap:
+Agents and the people behind them hold different money. Paid services for AI agents are priced in US
+dollars; the people and agents who want them often hold Argentine pesos, Brazilian reais, Colombian
+pesos or Nigerian naira — and a freelancer or agent in Buenos Aires or Lagos wants to be paid in theirs.
+Local402 connects the two sides on Celo, with [Textile FX](https://docs.textilecredit.com) doing the
+exchange at a firm quote every time. **It works both ways:**
 
-1. It lists x402 services with their price shown in **wARS, wBRL, wCOP or cNGN**, using live rates from
-   [Textile FX](https://docs.textilecredit.com).
-2. The buyer pays the gateway in that local stablecoin on Celo.
-3. The gateway converts the payment to USD₮ at a **firm Textile quote** (one on-chain fill against
-   Textile's independent market makers).
-4. It then pays the service over **x402** and returns the answer.
+- **Local currency in, dollar services out.** Anyone holding wARS, wBRL, wCOP or cNGN sees services priced
+  in their currency, pays in it, and the gateway converts on Textile and pays the service over x402.
+- **Dollars in, local currency out.** An AI assistant (Claude, or any MCP host) connects Local402's MCP
+  server and can hire services on Celo, or pay a person or an agent exactly what they ask in their own
+  currency: Textile buys the exact amount, and Local402 sends it.
 
-The first upstream is [buy](https://usebuy.ai)'s Celo catalogue: about 145 services payable in USD₮,
+The services are [buy](https://usebuy.ai)'s Celo catalogue: about 145 x402 services payable in USD₮,
 including Chainstack RPC, Cencori inference, Google Flights, and X, Reddit, TikTok and Instagram data.
 Any x402 seller on Celo can be added.
+
+### For people and agents holding local currency (HTTP gateway)
+
+1. `GET /catalog?currency=wARS` lists services with prices in **wARS, wBRL, wCOP or cNGN** from Textile's
+   live levels.
+2. The buyer pays the gateway in that local stablecoin on Celo.
+3. The gateway converts it to USD₮ at a **firm Textile quote** (an on-chain fill against Textile's
+   independent market makers) and credits exactly what was filled.
+4. `POST /call/:service` pays the service over **x402** and returns the answer.
+
+### For Claude and other AI assistants (MCP server)
+
+```json
+{ "mcpServers": { "local402": { "command": "node", "args": ["/path/to/Local402/src/mcp.mjs"],
+  "env": { "AGENT_KEY_FILE": "/path/to/agent.key", "ATTRIBUTION_CODE": "celo_…" } } } }
+```
+
+| Tool | What it does |
+|---|---|
+| `celo_services` | find services on Celo, priced in dollars and in a local currency |
+| `hire_celo_service` | hire one and return its answer; pay in USD₮, or in pesos/naira converted on Textile first |
+| `pay_in_local_currency` | pay a person or agent exactly N wARS / wBRL / wCOP / cNGN, funded from dollars via Textile, with a spend cap the user agreed to |
+| `celo_rates`, `wallet` | live Textile rates; the agent wallet's balances |
 
 Built for the Celo **Agents on Open Rails** hackathon (Stable Agents: Open Corridors · Textile FX, and
 Stable Agents: LatAm).
@@ -95,7 +119,13 @@ Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542
 | x402: Chainstack Celo RPC, 0.01 USD₮ | [`0xaa32fc58…`](https://celoscan.io/tx/0xaa32fc58f481e745fe368f8138be54d4b1d1403b137aa4a0087a0aeac2fb8a4b) |
 | x402: Cencori chat completion, 0.01 USD₮ | [`0x56837cb4…`](https://celoscan.io/tx/0x56837cb499c9987e3c444581ee67cfeba3488f92cba9024cff873e27d95b02f9) |
 
-Totals: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
+| **MCP door — an AI assistant hires and pays** | |
+| `hire_celo_service`: Reddit search, 0.005 USD₮ over x402 | [`0x4c8ff2ec…`](https://celoscan.io/tx/0x4c8ff2ec03bc418b931284b9ca509f10d1aa2080fedeab9256ae51a14282654e) |
+| `pay_in_local_currency`: Textile buys exactly 1,700 wARS for 1.024627 USD₮ | [`0x536796db…`](https://celoscan.io/tx/0x536796db3cb03a83bd7983bdd2cd32c6df68fb08235a762719a6c46a4b71c077) |
+| … and sends the 1,700 wARS to the recipient (our demo wallet, standing in for a freelancer) | [`0x8120dcf8…`](https://celoscan.io/tx/0x8120dcf883bc0b7ea018b1198bf5a7540a4015c7a1c997195072ac33349ea806) |
+
+Totals: seven Textile fills (about 9.1 USD₮ quoted and filled, both directions), eight paid x402 calls
+into services we do not control. Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
 paid x402 calls into services we do not control. Textile's 2 bps fee went to its fee recipient on each fill.
 
 ## Limits, plainly
