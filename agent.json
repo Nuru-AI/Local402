@@ -1,0 +1,10 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "corridor402",
+  "description": "Pay for any x402 agent service in your own currency. Accepts wARS, wBRL, wCOP and cNGN on Celo, converts them to USD₮ at a firm Textile FX quote, and pays the service over x402.",
+  "endpoints": [
+    { "type": "wallet", "address": "0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B", "chainId": 42220 },
+    { "type": "source", "url": "https://github.com/Nuru-AI/corridor402" }
+  ],
+  "supportedTrust": ["reputation"]
+}

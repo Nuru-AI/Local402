@@ -1,0 +1,76 @@
+// Textile FX taker client: preview, firm quote (keyless, proof of control), execute, report.
+// Docs: https://docs.textilecredit.com/api/v2/rfq
+import crypto from 'node:crypto';
+import { toHex } from 'viem';
+import { TEXTILE_API, CHAIN_ID, TOKENS } from './config.mjs';
+import { ensureAllowance, sendTagged } from './chain.mjs';
+
+async function post(path, body, headers = {}) {
+  const res = await fetch(`${TEXTILE_API}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(75_000),
+  });
+  const json = await res.json().catch(() => ({}));
+  return { status: res.status, json };
+}
+
+export async function levels() {
+  const res = await fetch(`${TEXTILE_API}/rfq/levels?chainId=${CHAIN_ID}`, { signal: AbortSignal.timeout(20_000) });
+  return (await res.json()).data;
+}
+
+/** Free indicative price. Exactly one of sellAmount / buyAmount (atomic strings). */
+export async function preview({ sellToken, buyToken, sellAmount, buyAmount }) {
+  const { status, json } = await post('/rfq/preview', { chainId: CHAIN_ID, sellToken, buyToken, ...(sellAmount ? { sellAmount } : { buyAmount }) });
+  if (status !== 200) throw new Error(`textile preview ${status}: ${JSON.stringify(json.error || json)}`);
+  return json.data;
+}
+
+async function takerProof(account) {
+  const nonce = toHex(crypto.randomBytes(32));
+  const issuedAt = Date.now();
+  const signature = await account.signTypedData({
+    domain: { name: 'Textile Taker Control', version: '1', chainId: CHAIN_ID },
+    types: { TakerControl: [
+      { name: 'taker', type: 'address' }, { name: 'chainId', type: 'uint256' },
+      { name: 'nonce', type: 'bytes32' }, { name: 'issuedAt', type: 'uint256' },
+    ] },
+    primaryType: 'TakerControl',
+    message: { taker: account.address, chainId: BigInt(CHAIN_ID), nonce, issuedAt: BigInt(issuedAt) },
+  });
+  return { nonce, issuedAt, signature };
+}
+
+/** Firm quote bound to the account. Sends unsigned first; signs proof of control only when asked. */
+export async function firmQuote(account, { sellToken, buyToken, sellAmount, buyAmount }) {
+  const body = { chainId: CHAIN_ID, sellToken, buyToken, taker: account.address, ...(sellAmount ? { sellAmount } : { buyAmount }) };
+  let { status, json } = await post('/rfq/request', body);
+  if (status === 401 && json?.error?.details?.reason === 'proof_of_control_required') {
+    ({ status, json } = await post('/rfq/request', { ...body, takerProof: await takerProof(account) }));
+  }
+  if (status !== 200) throw new Error(`textile request ${status}: ${JSON.stringify(json.error || json)}`);
+  return json.data; // status quoted | no_quote
+}
+
+/** Approve, re-check expiry, broadcast transactions.swap with our attribution tag, report the hash. */
+export async function execute(account, q) {
+  const { rfqId, claimToken, quote, transactions } = q;
+  const sellToken = transactions.approval?.to || q.sellToken;
+  const spender = quote.spender || quote.reactor;
+  await ensureAllowance(account, sellToken, spender, BigInt(quote.takerPays));
+  if (Date.now() >= Date.parse(quote.expiresAt)) throw new Error('quote expired during approval; request a new one');
+  // Keyless calls get no Textile tag, so the bytes are ours to suffix (one ERC-8021 tag, ours).
+  const receipt = await sendTagged(account, { to: transactions.swap.to, data: transactions.swap.data, value: BigInt(transactions.swap.value || 0) });
+  await post(`/rfq/${rfqId}/submit`, { txHash: receipt.transactionHash }, { 'X-Rfq-Claim': claimToken }).catch(() => {});
+  return { txHash: receipt.transactionHash, sold: quote.takerPays, bought: quote.buyAmount, fee: quote.feeAmount, rfqId };
+}
+
+/** Convert an exact amount of one token into another on Textile. */
+export async function convert(account, { from, to, sellAmount }) {
+  const q = await firmQuote(account, { sellToken: TOKENS[from].address, buyToken: TOKENS[to].address, sellAmount: sellAmount.toString() });
+  if (q.status !== 'quoted') throw new Error(`Textile: no quote (${q.reason}); available ${q.availableSellAmount ?? 'unknown'}`);
+  q.sellToken = TOKENS[from].address;
+  return execute(account, q);
+}
