@@ -4,6 +4,16 @@
 
 **Pay for any agent service like a local: in your own currency.**
 
+**Local402 connects Celo to the world's data and AI, in both directions.**
+
+| Side | Who | What they do |
+|---|---|---|
+| Celo → world | Celo agents and the people behind them, holding pesos, reais or naira | sip any paid service, from X and Reddit data to AI answers and Sippar's products, paying in their own currency with no account, card or ID |
+| World → Celo | AI assistants such as Claude, through Local402's MCP server | hire services on Celo and pay people and agents there exactly what they ask, in their own currency |
+
+Next: a Celo Unlock card, bought with a bank card, USDC or any stablecoin, spending through Sippar's
+connector on dollar services and in local currencies (not built yet).
+
 Agents and the people behind them hold different money. Paid services for AI agents are priced in US
 dollars; the people and agents who want them often hold Argentine pesos, Brazilian reais, Colombian
 pesos or Nigerian naira — and a freelancer or agent in Buenos Aires or Lagos wants to be paid in theirs.
