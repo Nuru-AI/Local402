@@ -1,3 +1,5 @@
+<p align="center"><img src="app/logo.png" alt="local402" width="180"></p>
+
 # Local402
 
 **Pay for any agent service like a local: in your own currency.**
