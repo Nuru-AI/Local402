@@ -20,6 +20,12 @@
   the ERC-8021 attribution tag decoded from each transaction's calldata, and Self Agent ID #198 checked with
   ownerOf(198) through forno. Textile's and buy's APIs refuse browser calls, so no read goes to them.
 
+  "Try it" (2026-11-09, Elad: build it for the judges) is the one thing that is not read from the chain: it calls
+  the try service at /local402/api/try (src/local402-try and deploy/local402-try in Nuru-AI/sippar), which pays one
+  allowlisted buy service from a demo wallet we fund, behind 3 tries per visitor per UTC day and a daily cap. The
+  service tells the page that wallet's address, and the activity reads it from Blockscout like the other two. If the
+  service is down, the box says so and nothing else on the page changes.
+
   Look (2026-11-09, Elad: "the same look as /pass/, /connect/ and /knowledge/"): their composition, unchanged in
   palette, fonts, header, buttons and footer. Always light. A landing page (Elad's review on PR #7187): the main idea and a live
   count first, what you can ask for (source icons from the logo engine, tools/secondaries-radar/cache-logos.py), how it
@@ -221,6 +227,77 @@
   .live-line.bad .dot{background:var(--grey); box-shadow:none}
   .links{display:flex; flex-wrap:wrap; column-gap:22px; margin:10px 0 0}
 
+  /* ---------- Try it: one real, paid call (src/local402-try behind /local402/api/) ---------- */
+  .try{margin-top:16px; border:1px solid var(--border); border-radius:16px; background:var(--tint); padding:22px 22px 20px}
+  .try fieldset{border:0; margin:0; padding:0; min-width:0}
+  .try legend{padding:0; font-size:15px; font-weight:650; color:var(--ink)}
+  .svcs{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  .svc{position:relative; display:inline-flex; align-items:baseline; gap:8px; min-height:44px; padding:11px 14px; border-radius:10px;
+    background:#FFFFFF; box-shadow:inset 0 0 0 1px var(--border); color:var(--ink); font-size:15px; font-weight:600; cursor:pointer;
+    touch-action:manipulation; transition:background-color .16s var(--ease), box-shadow .16s var(--ease)}
+  .svc input{position:absolute; inset:0; margin:0; opacity:0; cursor:pointer}
+  .svc .p{font-family:var(--mono); font-size:12.5px; font-weight:500; color:var(--grey); font-variant-numeric:tabular-nums}
+  @media (hover:hover){ .svc:hover{box-shadow:inset 0 0 0 1px var(--copper)} }
+  .svc:has(input:checked){background:var(--ink); color:#FFFFFF; box-shadow:none}
+  .svc:has(input:checked) .p{color:#E8DFCE}
+  .svc:has(input:focus-visible){outline:2px solid var(--copper); outline-offset:2px}
+  .svc:has(input:disabled){opacity:.55; cursor:not-allowed}
+  .qrow{margin-top:18px}
+  .qrow label{display:block; font-size:15px; font-weight:650; color:var(--ink)}
+  .qrow .hint{display:block; margin-top:2px; font-size:13.5px; color:var(--grey)}
+  .qin{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px}
+  .qin input{flex:1 1 260px; min-width:0; min-height:48px; padding:0 14px; border:0; border-radius:10px; background:#FFFFFF;
+    box-shadow:inset 0 0 0 1px var(--border); color:var(--ink); font:inherit; font-size:16px; caret-color:var(--copper)}
+  .qin input::placeholder{color:#6B7488}
+  .qin input:focus{outline:2px solid var(--copper); outline-offset:0}
+  .qin .btn{border:0; cursor:pointer; font:inherit; font-size:16px; font-weight:600}
+  .qin .btn:disabled{background:#8E95A6; cursor:not-allowed}
+  .qin .btn:focus-visible{outline:2px solid var(--copper); outline-offset:2px}
+  .left{margin:12px 0 0; font-size:14px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+  .left.bad{color:var(--danger)}
+  .wallet-note{margin:6px 0 0; font-size:13.5px; color:var(--grey); max-width:70ch}
+  .wallet-note a{font-family:var(--mono); font-size:13px}
+  .out{margin-top:16px}
+  .out:empty{display:none}
+  .wait{display:flex; align-items:center; gap:10px; padding:16px 18px; border-radius:12px; background:#FFFFFF; box-shadow:inset 0 0 0 1px var(--border);
+    color:var(--ink-2); font-size:15px; font-variant-numeric:tabular-nums}
+  .err{display:flex; gap:10px; align-items:flex-start; padding:14px 16px; border-radius:12px; background:#FFFFFF; box-shadow:inset 0 0 0 1px rgba(168,68,42,.35);
+    color:var(--danger); font-size:15px}
+  .err .ic{margin-top:2px}
+  .ans{border-radius:12px; background:#FFFFFF; box-shadow:inset 0 0 0 1px var(--border); overflow:hidden}
+  .ans-head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 16px; padding:12px 18px;
+    border-bottom:1px dotted rgba(138,98,66,.45)}
+  .ans-head .paid{display:inline-flex; align-items:center; gap:8px; font-size:14.5px; font-weight:650; color:var(--ok)}
+  .ans-head a{display:inline-flex; align-items:center; gap:6px; min-height:32px; font-family:var(--mono); font-size:13px; color:var(--copper)}
+  .ans-body{padding:6px 18px 4px}
+  .ans-text{margin:10px 0; font-size:16px; line-height:1.55; color:var(--ink); white-space:pre-wrap; max-width:70ch; text-wrap:pretty}
+  .ans-items{list-style:none; margin:0; padding:0}
+  .ans-items li{padding:12px 0}
+  .ans-items li + li{border-top:1px solid var(--border)}
+  .ans-items b{display:block; font-size:15px; font-weight:650; line-height:1.4}
+  .ans-items p{margin:2px 0 0; font-size:15px; color:var(--ink-2); max-width:70ch; overflow-wrap:anywhere}
+  .ans-items .m{display:block; margin-top:4px; font-size:13px; color:var(--grey)}
+  .ans-items a{font-size:13px}
+  .ans-rows{margin:6px 0; display:grid; grid-template-columns:auto minmax(0,1fr); gap:0 20px}
+  .ans-rows dt,.ans-rows dd{padding:9px 0; border-bottom:1px solid var(--border); margin:0}
+  .ans-rows dt{color:var(--ink-2); font-size:15px}
+  .ans-rows dd{font-family:var(--mono); font-size:14px; color:var(--ink); text-align:right; overflow-wrap:anywhere; font-variant-numeric:tabular-nums}
+  .ans-rows dt:nth-last-child(2),.ans-rows dd:last-child{border-bottom:0}
+  .raw{border-top:1px solid var(--border)}
+  .raw summary{display:flex; align-items:center; gap:8px; min-height:44px; padding:0 18px; font-size:14px; font-weight:600; color:var(--ink-2); cursor:pointer; list-style:none}
+  .raw summary::-webkit-details-marker{display:none}
+  .raw[open] summary .ic{transform:rotate(180deg)}
+  .raw pre{margin:0; padding:12px 18px 16px; max-height:280px; overflow:auto; font-family:var(--mono); font-size:12.5px; line-height:1.5; color:var(--ink-2);
+    background:var(--tint); white-space:pre-wrap; overflow-wrap:anywhere}
+  @media (max-width:560px){
+    .try{padding:18px 16px 16px}
+    .svc{flex:1 1 calc(50% - 4px); flex-direction:column; align-items:flex-start; gap:1px; padding:10px 14px; white-space:nowrap}
+    .qin .btn{width:100%}
+    .ans-rows{grid-template-columns:1fr}
+    .ans-rows dt{border-bottom:0; padding-bottom:0}
+    .ans-rows dd{text-align:left; padding-top:2px}
+  }
+
   /* ---------- Motion: the pass prints in once, on load ---------- */
   @media (prefers-reduced-motion:no-preference){
     .pass{animation:print .9s var(--ease) both}
@@ -277,7 +354,7 @@
       <p class="lede">It works both ways: people pay for data and AI in their own currency, and AI assistants pay people in theirs. Whoever pays in pesos or naira, or uses an Unlock code, needs no account, no card and no ID.</p>
       <p class="live-line" id="live-line"><span class="dot" aria-hidden="true"></span><span>Reading Celo mainnet</span></p>
       <div class="acts">
-        <a class="btn" href="#live">See it live on Celo</a>
+        <a class="btn" href="#try">Try it, paid live on Celo</a>
         <a class="link" href="https://github.com/Nuru-AI/Local402"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>Code and docs on GitHub</a>
       </div>
     </div>
@@ -291,6 +368,34 @@
       </div>
     </aside>
   </article>
+
+  <section id="try" aria-labelledby="try-h">
+    <h2 id="try-h">Try it</h2>
+    <p class="sub">Pick a service and ask. One click pays for it on Celo mainnet over x402, from a demo wallet we fund. The payment then shows in the activity below.</p>
+    <form class="try" id="try-form" novalidate>
+      <fieldset>
+        <legend>Service</legend>
+        <div class="svcs" id="svcs">
+          <label class="svc"><input type="radio" name="svc" value="x.posts.search" checked /><span>X posts</span><span class="p">0.005 USD₮</span></label>
+          <label class="svc"><input type="radio" name="svc" value="reddit.posts.search" /><span>Reddit posts</span><span class="p">0.005 USD₮</span></label>
+          <label class="svc"><input type="radio" name="svc" value="cencori.v1.chat.completions" /><span>AI answer</span><span class="p">0.01 USD₮</span></label>
+          <label class="svc"><input type="radio" name="svc" value="chainstack.celo" /><span>Celo chain</span><span class="p">0.01 USD₮</span></label>
+          <label class="svc"><input type="radio" name="svc" value="flights.search" /><span>Flights</span><span class="p">0.023 USD₮</span></label>
+        </div>
+      </fieldset>
+      <div class="qrow">
+        <label for="q" id="q-label">Search X for</label>
+        <span class="hint" id="q-hint">A few words, in any language.</span>
+        <div class="qin">
+          <input id="q" name="q" type="text" maxlength="200" autocomplete="off" enterkeyhint="go" value="stablecoins in Argentina" aria-describedby="q-hint try-left" />
+          <button class="btn" id="try-go" type="submit">Pay 0.005 USD₮ and ask</button>
+        </div>
+      </div>
+      <p class="left" id="try-left" aria-live="polite">Checking the demo wallet</p>
+      <p class="wallet-note" id="try-wallet"></p>
+    </form>
+    <div class="out" id="try-out" aria-live="polite"></div>
+  </section>
 
   <section aria-labelledby="ask">
     <h2 id="ask">What you can ask for</h2>
@@ -374,7 +479,7 @@
       <li class="tx msg"><span class="sk" aria-hidden="true"></span><span>Reading Celo</span></li>
     </ul>
     <button class="more" id="more" type="button" aria-expanded="false" aria-controls="rows" hidden></button>
-    <p class="note">Two wallets: the agent's, and a demo buyer wallet that is ours and funded by us, so it is not an independent user. Tags are decoded from each transaction's calldata here, in your browser. x402 payments are sent by the seller's facilitator and cannot carry a tag yet.</p>
+    <p class="note">Three wallets: the agent's, a demo buyer wallet, and the wallet that pays for the tries on this page. All three are ours and funded by us, so none of them is an independent user. Tags are decoded from each transaction's calldata here, in your browser. x402 payments are sent by the seller's facilitator and cannot carry a tag yet.</p>
   </section>
 
   <div class="closing">
@@ -476,24 +581,30 @@ function draw() {
 $('more').addEventListener('click', () => { open = !open; draw(); });
 
 async function load() {
-  const [gTx, bTx, gTr] = await Promise.all([
+  // The Try-it wallet's address comes from the try service; without it the page reads the other two.
+  const judge = (await Promise.race([JUDGE, new Promise((r) => setTimeout(() => r(null), 5000))])) || null;
+  const [gTx, bTx, gTr, jTx, jTr] = await Promise.all([
     all(`/addresses/${GATEWAY}/transactions`, 'filter=from'),
     all(`/addresses/${BUYER}/transactions`, 'filter=from'),
     all(`/addresses/${GATEWAY}/token-transfers`, 'type=ERC-20'),
+    judge ? all(`/addresses/${judge}/transactions`, 'filter=from').catch(() => []) : [],
+    judge ? all(`/addresses/${judge}/token-transfers`, 'type=ERC-20&filter=from').catch(() => []) : [],
   ]);
   const rows = [];
   let fills = 0, tagged = 0, calls = 0, local = 0;
   // Our own transactions: classify each and decode its tag from calldata.
-  await Promise.all([...gTx, ...bTx].map(async (t) => {
+  await Promise.all([...gTx, ...bTx, ...jTx].map(async (t) => {
     let input = t.raw_input;
     if (!input) { try { input = (await getJSON(`${API}/transactions/${t.hash}`)).raw_input; } catch { input = ''; } }
     const tag = decodeTag(input);
     if (tag) tagged++;
     const to = (t.to?.hash || '').toLowerCase();
     let what = t.method || 'Transaction';
-    if (to === REACTOR) { what = 'Textile FX fill at a firm quote'; fills++; }
+    const fromJudge = judge && (t.from?.hash || '').toLowerCase() === judge.toLowerCase();
+    if (to === REACTOR) { what = fromJudge ? 'Try-it wallet sells its pesos for dollars: Textile FX fill' : 'Textile FX fill at a firm quote'; fills++; }
     else if (to === REGISTRY) what = 'Agent registered (ERC-8004)';
     else if (t.method === 'approve') what = 'Token approved for Textile';
+    else if (t.method === 'transfer' && fromJudge) what = 'Try-it wallet returns what is left to the agent';
     else if (t.method === 'transfer') what = (t.from?.hash || '').toLowerCase() === BUYER ? 'Buyer pays in local currency or moves funds' : 'Agent transfer: refund, payee settlement or demo top-up';
     rows.push({ ts: t.timestamp, what, amount: '', tag, hash: t.hash });
   }));
@@ -505,6 +616,13 @@ async function load() {
       rows.push({ ts: x.timestamp, what: 'Paid data or AI call over x402, through buy', amount: `${fmt(x.total.value, x.total.decimals)} ${x.token.symbol}`, tag: 'x402', hash: x.transaction_hash });
     }
     if (to === GATEWAY && LOCAL.includes((x.token?.symbol || '').toUpperCase()) && Number(x.total.value) > 0) local++;
+  }
+  // Visitors' tries: USD₮ the Try-it wallet paid to buy's facilitator payTo.
+  for (const x of jTr) {
+    if ((x.to?.hash || '').toLowerCase() === BUY_PAYTO && (x.from?.hash || '').toLowerCase() === judge.toLowerCase()) {
+      calls++;
+      rows.push({ ts: x.timestamp, what: 'Try it on this page: a paid call over x402, through buy', amount: `${fmt(x.total.value, x.total.decimals)} ${x.token.symbol}`, tag: 'x402', hash: x.transaction_hash });
+    }
   }
   rows.sort((a, b) => (a.ts < b.ts ? 1 : -1));
   $('s-fills').textContent = fills;
@@ -526,6 +644,111 @@ function failed(e) {
     load().catch(failed);
   });
 }
+
+// ---------- Try it: one paid call through the try service (src/local402-try in Nuru-AI/sippar) ----------
+// Same origin on sippar.network; the copy in the Local402 repo calls the hosted service.
+const TRY_API = /(^|\.)sippar\.network$/.test(location.hostname) ? '/local402/api' : 'https://sippar.network/local402/api';
+const SVC = {
+  'x.posts.search': { label: 'Search X for', hint: 'A few words, in any language.', value: 'stablecoins in Argentina', price: 0.005 },
+  'reddit.posts.search': { label: 'Search Reddit for', hint: 'A few words, in any language.', value: 'remote work in Lagos', price: 0.005 },
+  'cencori.v1.chat.completions': { label: 'Ask the model', hint: 'It answers in up to four short sentences, in your language.', value: 'In two sentences, what is a stablecoin?', price: 0.01 },
+  'chainstack.celo': { label: 'A Celo address or transaction (optional)', hint: 'Leave it empty for the latest block and gas price.', value: '', price: 0.01 },
+  'flights.search': { label: 'Airports and date', hint: 'Two airport codes and a date, like EZE MIA 2026-12-12. With no date, three weeks from today.', value: 'EZE GRU', price: 0.023 },
+};
+IC.check = svg('<path d="M20 6 9 17l-5-5"/>', 16);
+let TRY = null; // the service's last status
+let typed = {}; // what the visitor typed per service, kept when they switch
+const usd = (n) => `${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} USD₮`;
+const shortAddr = (a) => a.slice(0, 6) + '…' + a.slice(-4);
+const resetIn = (s) => (s >= 3600 ? `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min` : `${Math.max(1, Math.round(s / 60))} min`);
+const selected = () => document.querySelector('input[name="svc"]:checked').value;
+
+function setService(id) {
+  const s = SVC[id];
+  $('q-label').textContent = s.label;
+  $('q-hint').textContent = s.hint;
+  $('q').value = typed[id] ?? s.value;
+  $('q').placeholder = id === 'chainstack.celo' ? '0x…' : '';
+  $('try-go').textContent = `Pay ${usd(s.price)} and ask`;
+}
+document.querySelectorAll('input[name="svc"]').forEach((r) => r.addEventListener('change', () => setService(selected())));
+$('q').addEventListener('input', () => { typed[selected()] = $('q').value; });
+
+function showStatus(st) {
+  TRY = st;
+  const left = $('try-left');
+  const go = $('try-go');
+  if (!st) {
+    left.className = 'left bad';
+    left.textContent = 'The Try box is offline right now. Everything else on this page is still read live from Celo.';
+    go.disabled = true;
+    return;
+  }
+  go.disabled = st.you.left === 0 || st.today.budgetLeftUSDT <= 0;
+  left.className = 'left' + (go.disabled ? ' bad' : '');
+  if (st.you.left === 0) left.textContent = `You have used your ${st.caps.perVisitorPerDay} tries for today. They come back in ${resetIn(st.you.resetsInSeconds)}, at midnight UTC.`;
+  else if (st.today.budgetLeftUSDT <= 0) left.textContent = `Today's demo budget of ${usd(st.caps.dailyUSDT)} is spent. It comes back in ${resetIn(st.you.resetsInSeconds)}, at midnight UTC.`;
+  else left.textContent = `${st.you.left} of ${st.caps.perVisitorPerDay} tries left today from here. ${usd(st.today.budgetLeftUSDT)} of today's ${usd(st.caps.dailyUSDT)} demo budget left.`;
+  const fill = st.float?.fills?.[0];
+  $('try-wallet').innerHTML = `Paid from our demo wallet <a href="https://celoscan.io/address/${esc(st.wallet)}" target="_blank" rel="noopener">${esc(shortAddr(st.wallet))}</a>. Part of its budget is in Argentine pesos. When its dollars run low, it sells the pesos for dollars in one Textile FX trade. That trade shows in the activity too.`
+    + (fill ? ` Its last one: <a href="https://celoscan.io/tx/${esc(fill.tx)}" target="_blank" rel="noopener">${esc(short(fill.tx))}</a>.` : '');
+}
+
+const JUDGE = fetch(`${TRY_API}/try`, { cache: 'no-store' })
+  .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+  .then((st) => { showStatus(st && st.ok ? st : null); return st?.wallet || null; });
+
+function answerHtml(a) {
+  if (!a) return '';
+  if (a.kind === 'text') return `<p class="ans-text">${esc(a.text)}</p>`;
+  if (a.kind === 'rows') return `<dl class="ans-rows">${a.rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
+  if (a.kind === 'items') {
+    return `<ul class="ans-items">${a.items.map((i) => {
+      const link = typeof i.url === 'string' && i.url.startsWith('https://') ? ` <a href="${esc(i.url)}" target="_blank" rel="noopener">Open</a>` : '';
+      return `<li>${i.title ? `<b>${esc(i.title)}</b>` : ''}${i.text ? `<p>${esc(i.text)}</p>` : ''}${i.meta || link ? `<span class="m">${esc(i.meta || '')}${link}</span>` : ''}</li>`;
+    }).join('')}</ul>`;
+  }
+  return '';
+}
+
+$('try-form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const go = $('try-go'), out = $('try-out');
+  if (go.disabled) return;
+  const service = selected();
+  go.disabled = true;
+  const t0 = Date.now();
+  out.innerHTML = `<div class="wait"><span>Paying on Celo and waiting for the answer: <span id="secs">0 s</span></span></div>`;
+  const tick = setInterval(() => { const e = $('secs'); if (e) e.textContent = `${Math.round((Date.now() - t0) / 1000)} s`; }, 1000);
+  let j = null;
+  try {
+    const r = await fetch(`${TRY_API}/try`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service, query: $('q').value }) });
+    j = await r.json().catch(() => null);
+    if (!j) throw new Error(r.status === 429 ? 'Too many requests from here right now. Wait a moment and try again.' : `The try service answered ${r.status}.`);
+  } catch (e) {
+    j = { ok: false, message: e.message === 'Failed to fetch' ? 'The Try box could not be reached. Check your connection and try again.' : e.message };
+  }
+  clearInterval(tick);
+  if (!j.ok) {
+    out.innerHTML = `<div class="err" role="alert">${IC.alert}<span>${esc(j.message || 'That did not work.')}</span></div>`;
+  } else {
+    const paid = j.celoscan
+      ? `<a href="${esc(j.celoscan)}" target="_blank" rel="noopener">${esc(short(j.settlementTx))}${IC.ext}</a>`
+      : '<span class="m">The seller did not report the settlement hash; it is in the activity below.</span>';
+    const body = answerHtml(j.answer) || '<p class="ans-text">The service answered; its reply is below as it came.</p>';
+    out.innerHTML = `<article class="ans" aria-label="Answer from ${esc(j.label)}">
+      <div class="ans-head"><span class="paid">${IC.check}Paid ${esc(usd(j.paidUSDT))} on Celo mainnet</span>${paid}</div>
+      <div class="ans-body">${body}</div>
+      <details class="raw"${j.answer ? '' : ' open'}><summary>What the service returned${IC.down}</summary><pre>${esc(j.raw)}</pre></details>
+    </article>`;
+    // Blockscout indexes within seconds; read the activity again so this payment appears in it.
+    setTimeout(() => load().catch(() => {}), 6000);
+    setTimeout(() => load().catch(() => {}), 20000);
+  }
+  // Refresh what this visitor has left.
+  const st = await fetch(`${TRY_API}/try`, { cache: 'no-store' }).then((r) => r.json()).catch(() => null);
+  showStatus(st && st.ok ? st : TRY);
+});
 
 // Self Agent ID: ownerOf(198) on the Self registry, read from Celo in the browser.
 (async () => {
