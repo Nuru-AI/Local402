@@ -39,8 +39,11 @@ settlements for each service call.
   in every Textile fill are Textile's market makers, and the x402 sellers are buy's providers.
 - x402 settlements are submitted by the seller's facilitator and cannot carry an attribution tag; the
   gateway's payTo/payer wallet is the address above.
-- One USD₮→wBRL quote reverted on-chain with `TRANSFER_FROM_FAILED` while the wBRL buy-side depth fell
-  from about 3,700 to about 25 USD₮; the gateway now cancels a quote whose swap fails.
+- wARS and cNGN converted cleanly. Firm quotes for USD₮→wBRL and USD₮→wCOP failed the pre-send
+  simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast) while Textile's wBRL buy-side depth fell
+  from about 3,700 to about 25 USD₮; the gateway cancels such a quote and frees the reservation.
+- Totals: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers) and
+  seven paid x402 calls (X search, Chainstack RPC, Cencori inference).
 - Funding arrived on Base and was bridged to Celo through Relay with a gasless permit.
 
 ## How the agent helped
