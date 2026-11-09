@@ -46,9 +46,20 @@ async function takerProof(account) {
 /** Firm quote bound to the account. Sends unsigned first; signs proof of control only when asked. */
 export async function firmQuote(account, { sellToken, buyToken, sellAmount, buyAmount }) {
   const body = { chainId: CHAIN_ID, sellToken, buyToken, taker: account.address, ...(sellAmount ? { sellAmount } : { buyAmount }) };
-  let { status, json } = await post('/rfq/request', body);
-  if (status === 401 && json?.error?.details?.reason === 'proof_of_control_required') {
-    ({ status, json } = await post('/rfq/request', { ...body, takerProof: await takerProof(account) }));
+  let status;
+  let json;
+  let proof;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    ({ status, json } = await post('/rfq/request', proof ? { ...body, takerProof: proof } : body));
+    const d = json?.error?.details;
+    if (status === 401 && d?.reason === 'proof_of_control_required') { proof = await takerProof(account); continue; }
+    // A live earlier quote can still hold these funds; Textile says when they free up. Wait it out once.
+    if (status === 400 && d?.reason === 'insufficient_funds' && d?.committed && d?.retryAfterMs <= 120_000) {
+      await new Promise((r) => setTimeout(r, d.retryAfterMs + 2_000));
+      proof = undefined;
+      continue;
+    }
+    break;
   }
   if (status !== 200) throw new Error(`textile request ${status}: ${JSON.stringify(json.error || json)}`);
   return json.data; // status quoted | no_quote

@@ -67,6 +67,13 @@ const calls = [
   ['x.posts.search', { query: 'celo stablecoins latam' }],
   ['chainstack.celo', [{ jsonrpc: '2.0', id: 1, method: 'eth_blockNumber', params: [] }]],
 ];
+if (process.env.WITH_AI === '1') {
+  calls.push(['cencori.v1.chat.completions', {
+    model: process.env.AI_MODEL || 'maximo-atlas-1.3',
+    messages: [{ role: 'user', content: `In two sentences: why would a small business in ${CURRENCY === 'cNGN' ? 'Nigeria' : 'Argentina'} want to pay for AI tools in its own currency?` }],
+    max_tokens: 256,
+  }]);
+}
 for (const [id, body] of calls) {
   const r = await (await fetch(`${GATEWAY_URL}/call/${id}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${dep.credit}` }, body: JSON.stringify(body),
