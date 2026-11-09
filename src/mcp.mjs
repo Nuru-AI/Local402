@@ -14,8 +14,7 @@ import { signVoucher, domain as channelDomain } from './channel.mjs';
 import { TOKENS, LOCAL } from './config.mjs';
 import { loadAccount, balanceOf, transferTagged } from './chain.mjs';
 import { convert, convertExactOut, preview } from './textile.mjs';
-import { pay } from './x402.mjs';
-import { services, ratesPerUsd } from './catalog.mjs';
+import { services, ratesPerUsd, payService } from './catalog.mjs';
 
 const account = loadAccount();
 const server = new McpServer({ name: 'local402', version: '0.2.0' });
@@ -24,7 +23,7 @@ const MAX_USD = Number(process.env.LOCAL402_MAX_USD_PER_CALL || '5');
 
 server.tool(
   'celo_services',
-  'List paid services on Celo (buy\'s x402 catalogue: Chainstack RPC, Cencori AI, Google Flights, X, Reddit, TikTok and Instagram data, and more) with each price in dollars and in a local currency.',
+  'List paid services on Celo with each price in dollars and in a local currency: buy\'s x402 catalogue (Chainstack RPC, Cencori AI, Google Flights, X, Reddit, TikTok and Instagram data, and more) and Sippar\'s data and AI products (ids starting sippar.).',
   { query: z.string().optional().describe('words to filter by, e.g. "flights" or "reddit"'), currency: z.enum(LOCAL).optional().describe('show prices in this currency too') },
   async ({ query, currency }) => {
     const [list, { rates }] = await Promise.all([services(), ratesPerUsd()]);
@@ -65,7 +64,7 @@ server.tool(
 
 server.tool(
   'hire_celo_service',
-  'Hire a service on Celo and return its answer. Pays the service over x402 in USD₮. With payWith set to a local currency, first converts that currency to USD₮ on Textile FX (at least about $1 per conversion; any change stays in the wallet).',
+  'Hire a service on Celo and return its answer. Pays buy\'s services over x402 in USD₮, and Sippar\'s products (ids starting sippar.) in USDC on Celo, refilling a small USDC float from USD₮ in one Textile fill when short. With payWith set to a local currency, first converts that currency to USD₮ on Textile FX (at least about $1 per conversion; any change stays in the wallet).',
   {
     serviceId: z.string().describe('an id from celo_services, e.g. "x.posts.search"'),
     input: z.any().describe('the request body the service expects (JSON)'),
@@ -86,9 +85,9 @@ server.tool(
         fx = await convert(account, { from: payWith, to: 'USDT', sellAmount: parseUnits(localNeeded.toFixed(6), TOKENS[payWith].decimals) });
       }
     }
-    const res = await pay(account, svc.url, { method: svc.method, body: input, symbol: 'USDT', maxAtomic: svc.atomic });
+    const res = await payService(account, svc, input);
     let body; try { body = JSON.parse(res.body); } catch { body = res.body; }
-    return text({ service: serviceId, paidUSDT: Number(res.priceAtomic) / 1e6, settlement: res.receipt?.transaction || res.receipt, textileConversion: fx, result: body });
+    return text({ service: serviceId, paidUSD: Number(res.priceAtomic) / 1e6, settlement: res.settlement, textileConversion: fx, usdcRefill: res.textileRefill || undefined, result: body });
   },
 );
 

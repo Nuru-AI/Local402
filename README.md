@@ -16,8 +16,16 @@ exchange at a firm quote every time. **It works both ways:**
   server and can hire services on Celo, or pay a person or an agent exactly what they ask in their own
   currency: Textile buys the exact amount, and Local402 sends it.
 
-The services are [buy](https://usebuy.ai)'s Celo catalogue: about 145 x402 services payable in USD₮,
-including Chainstack RPC, Cencori inference, Google Flights, and X, Reddit, TikTok and Instagram data.
+The services come from two outside shops, both paid per call on Celo:
+
+- [buy](https://usebuy.ai)'s Celo catalogue: x402 services payable in USD₮, including Chainstack RPC,
+  Cencori inference, Google Flights, and X, Reddit, TikTok and Instagram data.
+- [Sippar](https://sippar.network)'s data and AI products (ids `sippar.*`): social listening, search,
+  research, company and chain data, AI answers. Sippar's shop takes Celo's native USDC on its `celo-x402`
+  rail (one transfer to the pay-to its 402 names, then `X-PAYMENT: eip155:42220:<tx>`). Local402 keeps a
+  small USDC float, refilled from USD₮ in one Textile fill when short, so each call is one tagged transfer
+  and no exchange.
+
 Any x402 seller on Celo can be added.
 
 ### For people and agents holding local currency (HTTP gateway)
@@ -27,7 +35,8 @@ Any x402 seller on Celo can be added.
 2. The buyer pays the gateway in that local stablecoin on Celo.
 3. The gateway converts it to USD₮ at a **firm Textile quote** (an on-chain fill against Textile's
    independent market makers) and credits exactly what was filled.
-4. `POST /call/:service` pays the service over **x402** and returns the answer.
+4. `POST /call/:service` pays the service (buy over **x402** in USD₮, Sippar in USDC on Celo) and returns
+   the answer.
 
 ### For Claude and other AI assistants (MCP server)
 
@@ -39,7 +48,7 @@ Any x402 seller on Celo can be added.
 | Tool | What it does |
 |---|---|
 | `celo_services` | find services on Celo, priced in dollars and in a local currency |
-| `hire_celo_service` | hire one and return its answer; pay in USD₮, or in pesos/naira converted on Textile first |
+| `hire_celo_service` | hire one and return its answer; pay in USD₮, or in pesos/naira converted on Textile first; `sippar.*` products are paid in USDC on Celo |
 | `pay_in_local_currency` | pay a person or agent exactly N wARS / wBRL / wCOP / cNGN, funded from dollars via Textile, with a spend cap the user agreed to |
 | `celo_rates`, `wallet` | live Textile rates; the agent wallet's balances |
 
@@ -97,6 +106,7 @@ client re-quotes, and waits out its own reservation using Textile's `retryAfterM
 buyer (wARS) ──transfer──▶ gateway ──Textile RFQ: wARS→USD₮──▶ gateway (USD₮)
                                                      │
                      answer ◀── x402 (EIP-3009, USD₮) ┴──▶ service (buy gateway: Chainstack, Cencori, …)
+                     answer ◀── one tagged USDC transfer ──▶ Sippar product (celo-x402: eip155:42220:<tx>)
 ```
 
 - **FX:** Textile's v2 RFQ API, keyless. The gateway proves control of its wallet with one EIP-712
@@ -105,7 +115,9 @@ buyer (wARS) ──transfer──▶ gateway ──Textile RFQ: wARS→USD₮─
 - **Pricing:** the catalogue converts each USD price with Textile's public `/v2/rfq/levels` ladder. The
   deposit itself converts at the firm quote, so the credit is exactly what Textile filled.
 - **Payments out:** a minimal x402 `exact` client signs an EIP-3009 `transferWithAuthorization` in USD₮;
-  the seller's facilitator settles it.
+  the seller's facilitator settles it. For Sippar (`src/sippar.mjs`) the gateway reads the Celo
+  requirement from Sippar's 402, sends one USDC transfer carrying the attribution tag, and presents the
+  tx; if the answer fails, the same tx is presented again rather than paying twice.
 - **Gas:** paid in USD₮ through Celo fee abstraction (CIP-64), so the gateway never needs CELO.
 - **Attribution:** every transaction the gateway sends carries the ERC-8021 tag issued at hackathon
   enrolment (`@celo/attribution-tags`); the code refuses to send an untagged transaction. x402
@@ -135,6 +147,9 @@ npm start           # the gateway on :4020
 | `POST /call/:serviceId` | `Authorization: Bearer <credit>`; pays the service over x402 and returns its answer; refunds the credit if the service fails |
 | `GET /balance` | remaining credit |
 | `GET /history` | deposits, Textile fills and calls |
+
+`node scripts/sippar-quote.mjs reddit-social` reads Sippar's catalogue and one product's Celo price for
+free; `node scripts/sippar-demo.mjs` buys two Sippar products on mainnet.
 
 `npm run demo` runs the whole flow on mainnet with a demo buyer wallet (funded by us, so it is not an
 independent user).
@@ -205,6 +220,9 @@ paid x402 calls into services we do not control. Textile's 2 bps fee went to its
 - The demo buyer wallet is ours and funded by us; it is not an independent user.
 - Textile's minimum is about $1 per conversion, so deposits are at least that; calls then draw down the
   credit a few cents at a time.
+- Sippar's Celo rail shipped on 2026-11-09, the deadline day. The Sippar client is written
+  and checked against Sippar's live catalogue, but no paid Sippar call from this wallet is in the proof
+  table yet.
 - wARS and cNGN converted cleanly. USD₮ → wBRL and USD₮ → wCOP firm quotes came back but failed the
   pre-send simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast); at the same time Textile's
   wBRL buy-side depth fell from about 3,700 to about 25 USD₮. The gateway cancels such a quote and frees
@@ -221,4 +239,4 @@ paid x402 calls into services we do not control. Textile's 2 bps fee went to its
 
 Built with [Celopedia](https://github.com/celo-org/celopedia-skills) and
 [celo-org/agent-skills](https://github.com/celo-org/agent-skills) as the agent's reference, on
-[Textile FX](https://textilecredit.com), [buy](https://usebuy.ai) and Celo. MIT licence.
+[Textile FX](https://textilecredit.com), [buy](https://usebuy.ai), [Sippar](https://sippar.network) and Celo. MIT licence.

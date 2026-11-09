@@ -2,15 +2,14 @@
 // 1. GET  /catalog?currency=wARS   services priced in pesos, reais or naira (Textile levels)
 // 2. send wARS / wBRL / wCOP / cNGN to the gateway wallet on Celo
 // 3. POST /deposit {txHash}          the gateway converts it to USD₮ on Textile FX, returns a credit token
-// 4. POST /call/:serviceId           the gateway pays the service over x402 and returns its answer
+// 4. POST /call/:serviceId           the gateway pays the service (buy over x402, or Sippar on Celo) and returns its answer
 import express from 'express';
 import { decodeEventLog, erc20Abi } from 'viem';
 import { LOCAL, TOKENS, tokenByAddress, ATTRIBUTION_CODE } from './config.mjs';
 import { publicClient, loadAccount, transferTagged } from './chain.mjs';
 import { domain as channelDomain, types as channelTypes, verifyVoucher, decodeVoucher } from './channel.mjs';
 import { convert } from './textile.mjs';
-import { pay } from './x402.mjs';
-import { services, pricedCatalog, ratesPerUsd } from './catalog.mjs';
+import { services, pricedCatalog, ratesPerUsd, payService } from './catalog.mjs';
 import * as ledger from './ledger.mjs';
 
 const account = loadAccount();
@@ -26,7 +25,7 @@ app.get('/', (req, res) => res.json({
   payIn: LOCAL,
   settlesUpstreamIn: 'USDT',
   fx: 'Textile FX (firm RFQ quotes)',
-  upstream: 'buy (gateway.usebuy.ai) x402 catalogue',
+  upstream: ['buy (gateway.usebuy.ai) x402 catalogue, paid in USD₮', 'Sippar (sippar.network) products, ids sippar.*, paid in USDC on Celo'],
   attribution: ATTRIBUTION_CODE || null,
   flow: [
     'GET /catalog?currency=wARS',
@@ -113,11 +112,11 @@ app.post('/channel/:id/call/:service', wrap(async (req, res) => {
   if (!ok) return res.status(401).json({ error: 'voucher not signed by the channel owner' });
   ledger.draw(id, v.cumulative, svc.atomic, { service: svc.id, usd: svc.usd });
   try {
-    const r = await pay(account, svc.url, { method: svc.method, body: req.body, symbol: 'USDT', maxAtomic: svc.atomic });
+    const r = await payService(account, svc, req.body);
     if (!r.paid) throw Object.assign(new Error(`upstream answered ${r.status}: ${(r.body || '').slice(0, 300)}`), { status: 502 });
     let body;
     try { body = JSON.parse(r.body); } catch { body = r.body; }
-    res.json({ service: svc.id, channel: id, cumulative: v.cumulative, paidUSDT: Number(r.priceAtomic) / 1e6, settlement: r.receipt?.transaction || r.receipt, result: body });
+    res.json({ service: svc.id, channel: id, cumulative: v.cumulative, paidUSDT: Number(r.priceAtomic) / 1e6, settlement: r.settlement, result: body });
   } catch (e) {
     ledger.undraw(id, svc.atomic); // the voucher's total is not spent if the service failed
     throw e;
@@ -171,11 +170,11 @@ app.post('/call/:id', wrap(async (req, res) => {
   if (!svc) return res.status(404).json({ error: 'unknown service' });
   ledger.debit(token, svc.atomic, { service: svc.id, usd: svc.usd });
   try {
-    const r = await pay(account, svc.url, { method: svc.method, body: req.body, symbol: 'USDT', maxAtomic: svc.atomic });
+    const r = await payService(account, svc, req.body);
     if (!r.paid) throw Object.assign(new Error(`upstream answered ${r.status}: ${(r.body || '').slice(0, 300)}`), { status: 502 });
     let body;
     try { body = JSON.parse(r.body); } catch { body = r.body; }
-    res.json({ service: svc.id, paidUSDT: Number(r.priceAtomic) / 1e6, payTo: r.payTo, settlement: r.receipt, result: body });
+    res.json({ service: svc.id, paidUSDT: Number(r.priceAtomic) / 1e6, payTo: r.payTo, settlement: r.settlement, result: body });
   } catch (e) {
     ledger.refund(token, svc.atomic);
     throw e;

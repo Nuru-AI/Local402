@@ -11,7 +11,9 @@
     "mcp": "node src/mcp.mjs",
     "mcp-demo": "node scripts/mcp-demo.mjs",
     "channel-demo": "node scripts/channel-demo.mjs",
-    "payee-demo": "node scripts/payee-demo.mjs"
+    "payee-demo": "node scripts/payee-demo.mjs",
+    "sippar-quote": "node scripts/sippar-quote.mjs",
+    "sippar-demo": "node scripts/sippar-demo.mjs"
   },
   "license": "MIT",
   "dependencies": {

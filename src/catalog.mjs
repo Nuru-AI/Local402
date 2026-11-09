@@ -1,10 +1,12 @@
 // The services a buyer can reach, priced in their own currency from Textile's live ladder.
 import { BUY_GATEWAY, TOKENS, LOCAL } from './config.mjs';
 import { levels } from './textile.mjs';
+import { pay } from './x402.mjs';
+import { sipparProducts, isSippar, paySippar } from './sippar.mjs';
 
 let cache = { at: 0, services: [] };
 
-/** buy's Celo catalogue (Chainstack, Cencori, Apify, TikHub, Google Cloud and more). */
+/** buy's Celo catalogue (Chainstack, Cencori, Apify, TikHub, Google Cloud and more), then Sippar's products. */
 export async function services() {
   if (Date.now() - cache.at < 10 * 60_000 && cache.services.length) return cache.services;
   const res = await fetch(`${BUY_GATEWAY}/v1/catalog`, { signal: AbortSignal.timeout(20_000) });
@@ -12,8 +14,20 @@ export async function services() {
   const list = (cat.capabilities || [])
     .filter((c) => c.price?.usd && (c.price.tokens || []).includes('USDT'))
     .map((c) => ({ id: c.id, method: c.method || 'POST', url: c.url || c.path || c.resource, usd: c.price.usd, atomic: c.price.atomic, description: c.description || c.summary || '', provider: 'buy' }));
-  cache = { at: Date.now(), services: list };
-  return list;
+  // Sippar's products, paid in USDC on Celo (src/sippar.mjs). A Sippar outage never hides buy's catalogue.
+  let sippar = [];
+  try { sippar = await sipparProducts(); } catch (e) { console.warn('Sippar catalog unavailable:', e.message); }
+  const all = [...list, ...sippar];
+  cache = { at: Date.now(), services: all };
+  return all;
+}
+
+/** Pay one call to a service from either catalogue: buy over x402 in USD₮, Sippar in USDC on its Celo rail. */
+export async function payService(account, svc, body) {
+  const r = isSippar(svc.id)
+    ? await paySippar(account, svc, body, { maxAtomic: svc.atomic })
+    : await pay(account, svc.url, { method: svc.method, body, symbol: 'USDT', maxAtomic: svc.atomic });
+  return { ...r, settlement: r.tx || r.receipt?.transaction || r.receipt || null };
 }
 
 /** Local units per one USD₮, from the smallest firm level on the local → USD₮ ladder. */
