@@ -209,9 +209,18 @@ Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542
 | … and a Cencori answer in Spanish (0.01 USD₮) | [`0x60de95eb…`](https://celoscan.io/tx/0x60de95eb9a5a1abc2b17b945321f72b53214e9c9ca79c7a1894809fdbfe39001) |
 | **Apify through buy (MCP door)** | |
 | `hire_celo_service`: TikTok data from an Apify Actor (ScrapTik), 0.007 USD₮ over x402, provider `apify` | [`0x7cf24168…`](https://celoscan.io/tx/0x7cf24168b6c1a32d0a28802e5485b396d11754b7d3771806f1a30c1839bc696e) |
+| **Sippar — products paid in USDC on Celo (`scripts/sippar-demo.mjs`)** | |
+| USDC float refilled: one Textile fill, 1.051092 USD₮ → 1.05 USDC | [`0x8b1b9c34…`](https://celoscan.io/tx/0x8b1b9c34179b0475ff4d1790f781929bcd6a74822d49a1abf601034d47e9310c) |
+| `sippar.reddit-social`: one tagged 0.02 USDC transfer to Sippar's pay-to, presented as `X-PAYMENT: eip155:42220:<tx>` | [`0x90caffd1…`](https://celoscan.io/tx/0x90caffd1da938f6f457c1a3f40b9335435d69d585a0b7a0b8a61b86eedc686ee) |
+| `sippar.news-search`: one tagged 0.01 USDC transfer, answered | [`0x88397bc4…`](https://celoscan.io/tx/0x88397bc4202383e34e37fa9e42b8d186f8df469acb1c980b66135a362409c704) |
 
-Totals: twelve Textile fills (about 19 USD₮ quoted and filled, both directions), fifteen paid x402
-calls into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori). Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
+Sippar answered the Reddit call 8 seconds after payment, but the client's connection timed out before the
+answer arrived. Presenting the same transaction once more returned that answer at no charge, marked
+`redelivered`, so a timeout costs neither a second payment nor the answer.
+
+Totals: thirteen Textile fills (about 20 USD₮ quoted and filled, both directions), fifteen paid x402
+calls into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori), and two paid
+calls into Sippar's shop over its `celo-x402` rail. Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
 paid x402 calls into services we do not control. Textile's 2 bps fee went to its fee recipient on each fill.
 
 ## Limits, plainly
@@ -220,9 +229,6 @@ paid x402 calls into services we do not control. Textile's 2 bps fee went to its
 - The demo buyer wallet is ours and funded by us; it is not an independent user.
 - Textile's minimum is about $1 per conversion, so deposits are at least that; calls then draw down the
   credit a few cents at a time.
-- Sippar's Celo rail shipped on 2026-11-09, the deadline day. The Sippar client is written
-  and checked against Sippar's live catalogue, but no paid Sippar call from this wallet is in the proof
-  table yet.
 - wARS and cNGN converted cleanly. USD₮ → wBRL and USD₮ → wCOP firm quotes came back but failed the
   pre-send simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast); at the same time Textile's
   wBRL buy-side depth fell from about 3,700 to about 25 USD₮. The gateway cancels such a quote and frees
