@@ -15,6 +15,32 @@ const hash = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
 export function depositSeen(txHash) { return !!load().deposits[txHash.toLowerCase()]; }
 
+/**
+ * Unlock codes: split a credit into `count` codes of `eachAtomic` USD₮ each. Whoever holds a code
+ * can spend it on the catalogue with no wallet, no account and no ID. Closed loop: a code buys
+ * services here and nothing else, and cannot be cashed out.
+ */
+export function mintCodes(token, count, eachAtomic) {
+  const db = load();
+  const c = db.credits[hash(token)];
+  if (!c) throw Object.assign(new Error('unknown credit token'), { status: 401 });
+  const total = BigInt(eachAtomic) * BigInt(count);
+  if (BigInt(c.balance) < total) throw Object.assign(new Error('balance too low for those codes'), { status: 402 });
+  c.balance = (BigInt(c.balance) - total).toString();
+  for (const ch of Object.values(db.channels || {})) {
+    if (ch.credit === hash(token)) ch.spent = (BigInt(ch.credited) - BigInt(c.balance)).toString();
+  }
+  const codes = [];
+  for (let i = 0; i < count; i++) {
+    const code = `unlock_${crypto.randomBytes(12).toString('hex')}`;
+    db.credits[hash(code)] = { owner: null, balance: eachAtomic.toString(), from: hash(token).slice(0, 12), kind: 'unlock-code', at: new Date().toISOString() };
+    codes.push(code);
+  }
+  db.calls.push({ service: 'mint-unlock-codes', count, eachAtomic: eachAtomic.toString(), credit: hash(token).slice(0, 12), at: new Date().toISOString() });
+  save(db);
+  return codes;
+}
+
 export function recordDeposit(txHash, record) {
   const db = load();
   const token = `l402_${crypto.randomBytes(24).toString('hex')}`;

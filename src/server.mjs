@@ -150,6 +150,15 @@ app.post('/channel/:id/close', wrap(async (req, res) => {
   res.json({ channel: id, spentUSDT: Number(ch.spent) / 1e6, calls: ch.calls, refund });
 }));
 
+// Unlock codes: pay once in local currency, hand out codes; a code spends with no wallet at all.
+app.post('/unlock-codes', wrap(async (req, res) => {
+  const count = Math.min(Math.max(parseInt(req.body?.count, 10) || 1, 1), 50);
+  const eachUSDT = Number(req.body?.eachUSDT || 0.1);
+  if (!(eachUSDT >= 0.01 && eachUSDT <= 20)) return res.status(400).json({ error: 'eachUSDT must be between 0.01 and 20' });
+  const codes = ledger.mintCodes(bearer(req), count, BigInt(Math.round(eachUSDT * 1e6)));
+  res.json({ codes, eachUSDT, how: 'Send the code to anyone. They call POST /call/:service with Authorization: Bearer <code>, or use it from the MCP server. No wallet, account or ID needed.' });
+}));
+
 app.get('/balance', wrap(async (req, res) => {
   const b = ledger.balance(bearer(req));
   if (!b) return res.status(401).json({ error: 'unknown credit token' });

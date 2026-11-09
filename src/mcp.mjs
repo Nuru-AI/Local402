@@ -43,6 +43,26 @@ server.tool(
   async () => text(await ratesPerUsd()),
 );
 
+const GATEWAY_URL = process.env.LOCAL402_GATEWAY || 'http://localhost:4020';
+
+server.tool(
+  'use_unlock_code',
+  'Hire a data or AI service with a Local402 Unlock code (a prepaid code someone paid for in pesos, reais or naira). Needs no wallet, account, card or ID: the code is the credit.',
+  {
+    code: z.string().describe('the Unlock code, starting with unlock_'),
+    serviceId: z.string().describe('an id from celo_services'),
+    input: z.any().describe('the request body the service expects (JSON)'),
+  },
+  async ({ code, serviceId, input }) => {
+    const r = await fetch(`${GATEWAY_URL}/call/${serviceId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${code}` }, body: JSON.stringify(input),
+    });
+    const body = await r.json();
+    const bal = await (await fetch(`${GATEWAY_URL}/balance`, { headers: { Authorization: `Bearer ${code}` } })).json();
+    return text({ ...body, codeBalanceUSDT: bal.balanceUSDT });
+  },
+);
+
 server.tool(
   'hire_celo_service',
   'Hire a service on Celo and return its answer. Pays the service over x402 in USD₮. With payWith set to a local currency, first converts that currency to USD₮ on Textile FX (at least about $1 per conversion; any change stays in the wallet).',

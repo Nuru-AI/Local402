@@ -44,6 +44,23 @@ Any x402 seller on Celo can be added.
 Built for the Celo **Agents on Open Rails** hackathon (Stable Agents: Open Corridors · Textile FX, and
 Stable Agents: LatAm).
 
+## Unlock codes: access with no wallet, no account, no ID
+
+Across Latin America many people cannot open the accounts online services ask for: no card that works
+abroad, no dollar income, no identity document a sign-up flow accepts. Every x402 service already
+skips the account. Local402 skips the rest. Someone who holds pesos pays once (a shop, a friend, a
+community group, an NGO), splits the credit into **Unlock codes**, and hands them out over WhatsApp or
+on paper. Whoever holds a code buys data and AI with it, from any HTTP client or straight from Claude
+through the MCP tool `use_unlock_code`. The code is the credit; nothing else is asked.
+
+Codes are closed-loop prepaid credit: they buy services through Local402 and cannot be cashed out.
+
+| Endpoint / tool | |
+|---|---|
+| `POST /unlock-codes {count, eachUSDT}` | split a credit into codes (Bearer: the credit token from `/deposit`) |
+| `POST /call/:service` with `Authorization: Bearer unlock_…` | spend a code |
+| MCP `use_unlock_code {code, serviceId, input}` | the same, from Claude, with no wallet configured |
+
 ## FX channels: Textile's minimum as a channel open
 
 A Textile conversion has a floor (about $1) and a fixed cost (spread, fee, gas). Paying for a $0.005
@@ -164,10 +181,15 @@ Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542
 | `channel_pay` ×3 (500, 400, 300 wARS): signed vouchers, no transaction | — |
 | `close_payee_channel`: one transfer settles 1,200 wARS (600 unspent kept) | [`0xf030201c…`](https://celoscan.io/tx/0xf030201c593662ec150a87a50300f397d37e11fab584c2ccccdd6b7588d18277) |
 
+| **Unlock codes — pay once in pesos, spend with no wallet** | |
+| Buyer pays the gateway 5,011.98 wARS | [`0x3646163c…`](https://celoscan.io/tx/0x3646163c22f33b43a88d62e72ecb5b935a8727a769e6136c2de0431cbaeb8604) |
+| One Textile fill → 3.020844 USD₮ credit, split into 5 codes of 0.25 USD₮ | [`0xb55ed554…`](https://celoscan.io/tx/0xb55ed55450e8cb4ba79fcfb75094b5c48e1e9e7dc048414cf590c8f25be6eab7) |
+| A code holder with no wallet, through the MCP door: Reddit search (0.005 USD₮) | [`0xdf1f1f44…`](https://celoscan.io/tx/0xdf1f1f44bea65d9fc2858b9889c44b3b7b27d15fef2cad58886b666f6ad1c042) |
+| … and a Cencori answer in Spanish (0.01 USD₮) | [`0x60de95eb…`](https://celoscan.io/tx/0x60de95eb9a5a1abc2b17b945321f72b53214e9c9ca79c7a1894809fdbfe39001) |
 | **Apify through buy (MCP door)** | |
 | `hire_celo_service`: TikTok data from an Apify Actor (ScrapTik), 0.007 USD₮ over x402, provider `apify` | [`0x7cf24168…`](https://celoscan.io/tx/0x7cf24168b6c1a32d0a28802e5485b396d11754b7d3771806f1a30c1839bc696e) |
 
-Totals: eleven Textile fills (about 16 USD₮ quoted and filled, both directions), thirteen paid x402
+Totals: twelve Textile fills (about 19 USD₮ quoted and filled, both directions), fifteen paid x402
 calls into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori). Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
 paid x402 calls into services we do not control. Textile's 2 bps fee went to its fee recipient on each fill.
 
