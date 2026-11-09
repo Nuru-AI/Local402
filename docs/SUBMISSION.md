@@ -59,8 +59,8 @@ settlements for each service call.
 - wARS and cNGN converted cleanly. Firm quotes for USD₮→wBRL and USD₮→wCOP failed the pre-send
   simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast) while Textile's wBRL buy-side depth fell
   from about 3,700 to about 25 USD₮; the gateway cancels such a quote and frees the reservation.
-- Totals: eleven Textile fills (about 16 USD₮ quoted and filled, both directions) and twelve paid x402
-  calls (X and Reddit search, Chainstack RPC, Cencori inference); one buyer FX channel (open, four voucher
+- Totals: eleven Textile fills (about 16 USD₮ quoted and filled, both directions) and thirteen paid x402
+  calls (X and Reddit search, TikTok data from an Apify Actor, Chainstack RPC, Cencori inference); one buyer FX channel (open, four voucher
   draws, close with a wARS refund) and one payee channel (three voucher payments, one settlement).
 - Funding arrived on Base and was bridged to Celo through Relay with a gasless permit.
 

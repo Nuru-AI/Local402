@@ -164,8 +164,11 @@ Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542
 | `channel_pay` ×3 (500, 400, 300 wARS): signed vouchers, no transaction | — |
 | `close_payee_channel`: one transfer settles 1,200 wARS (600 unspent kept) | [`0xf030201c…`](https://celoscan.io/tx/0xf030201c593662ec150a87a50300f397d37e11fab584c2ccccdd6b7588d18277) |
 
-Totals: eleven Textile fills (about 16 USD₮ quoted and filled, both directions), twelve paid x402
-calls into services we do not control. Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
+| **Apify through buy (MCP door)** | |
+| `hire_celo_service`: TikTok data from an Apify Actor (ScrapTik), 0.007 USD₮ over x402, provider `apify` | [`0x7cf24168…`](https://celoscan.io/tx/0x7cf24168b6c1a32d0a28802e5485b396d11754b7d3771806f1a30c1839bc696e) |
+
+Totals: eleven Textile fills (about 16 USD₮ quoted and filled, both directions), thirteen paid x402
+calls into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori). Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
 paid x402 calls into services we do not control. Textile's 2 bps fee went to its fee recipient on each fill.
 
 ## Limits, plainly

@@ -8,13 +8,15 @@ Local402
 
 **Description**
 
-The world's data and AI are now sold by the call: what people are saying on X or Reddit, a flight price, a reading from a blockchain, an answer from a model, each for a cent or less. Agents buy them with no account and no API key. But every price is in dollars, and many of the people who could use them hold pesos, reais or naira.
+Local402 lets anyone, and their AI agent, sip the world's data and AI in their own currency. Pay in pesos, reais or naira on Celo, a cent at a time, for live answers that until now were sold only in dollars.
 
-Local402 gives them that access in their own money. A shop owner in Córdoba or an agent in Lagos pays in wARS or cNGN on Celo and gets live social data, flight search, blockchain data and AI answers, one call at a time. It works the other way too. Through the Local402 MCP server, Claude and other assistants can hire data and AI services on Celo, and pay the people and agents who work for them in their own currency.
+A shop owner in Córdoba can ask what TikTok and Reddit are saying about her product, check a flight, read the chain or ask an AI model, and pay for each sip in Ripio's wARS. A trader in Lagos can do the same in cNGN. It works the other way too. Through the Local402 MCP server, Claude and other assistants hire data and AI on Celo, and pay the people and agents who work for them in their own currency.
 
-Textile FX handles every currency crossing at a firm quote. A Textile trade has a minimum of about one dollar, far too big for a purchase that costs a cent, so Local402 turns one trade into a payment channel, the design we already run in production on other networks. One Textile fill opens it, every call is a signed voucher with no transaction and no exchange, and one fill closes it, returning what is left in the buyer's own currency.
+Every currency crossing runs through Textile FX at a firm quote. A Textile trade starts at about one dollar, far more than one sip, so Local402 makes each trade open a payment channel. It is the same design behind MPP sessions, x402 batch settlement and Apify's one-dollar prepaid token, all of which we already run in production. One Textile fill opens the channel, every call is a signed voucher with no transaction and no exchange, and one fill closes it, returning the rest in the buyer's own money.
 
-Live on Celo mainnet: 11 Textile fills, 12 paid data and AI calls (X, Reddit, Chainstack, Cencori), ERC-8004 agent #10063, every transaction tagged. Built by the team behind Sippar, which gives people and their agents pay-per-call access to data and AI across chains. Open source: https://github.com/Nuru-AI/Local402
+The data and AI come through buy, Celo's marketplace for agents: X and Reddit search, TikTok data from Apify, Celo RPC from Chainstack and answers from Cencori, each paid per call over x402. Live on Celo mainnet: 11 Textile fills, 13 paid calls, ERC-8004 agent #10063, every transaction tagged. Built by the team behind Sippar. Open source: https://github.com/Nuru-AI/Local402
+
+Building prosperity for all, one sip at a time.
 
 ## Step 2
 
