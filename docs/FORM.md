@@ -20,4 +20,42 @@ Building prosperity for all, one sip at a time.
 
 ## Step 2
 
-Send a screenshot of Step 2 and its fields are added here.
+**GitHub repo**
+
+https://github.com/Nuru-AI/Local402
+
+**Live app URL**
+
+https://sippar.network/local402/
+
+**Video URL**
+
+Optional. Leave empty.
+
+**Agent wallet**
+
+0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B
+
+**ERC-8004 agent** (if asked)
+
+https://8004scan.io/agents/celo/10063
+
+**Self Agent ID** (if asked)
+
+#198, owned by the agent wallet above
+
+**Attribution tag** (if asked)
+
+celo_b049a252d542
+
+**Tracks** (if asked)
+
+Stable Agents: Open Corridors · Textile FX (primary), Stable Agents: LatAm (second). Build with buy also fits: every service call is a paid x402 call through buy.
+
+**Proof of payment / services used** (if asked)
+
+Every transaction is listed with links in the README section "Proof on Celo mainnet": https://github.com/Nuru-AI/Local402#proof-on-celo-mainnet-2026-11-09 . Services paid through buy: X and Reddit search, TikTok data from an Apify Actor, Chainstack Celo RPC, Cencori chat completions.
+
+**Anything else / notes** (if asked)
+
+The demo buyer wallet is ours and funded by us, so it is not an independent user. The counterparties in every Textile fill are Textile's market makers; the x402 sellers are buy's providers. x402 settlements cannot carry an attribution tag yet; our payTo/payer wallet is the agent wallet above.
