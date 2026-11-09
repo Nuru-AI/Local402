@@ -1,4 +1,4 @@
-// corridor402: pay for any x402 agent service in your own currency.
+// Local402: pay for any x402 agent service in your own currency.
 // 1. GET  /catalog?currency=wARS   services priced in pesos, reais or naira (Textile levels)
 // 2. send wARS / wBRL / wCOP / cNGN to the gateway wallet on Celo
 // 3. POST /deposit {txHash}          the gateway converts it to USD₮ on Textile FX, returns a credit token
@@ -19,7 +19,7 @@ const bearer = (req) => (req.headers.authorization || '').replace(/^Bearer\s+/i,
 const wrap = (fn) => (req, res) => fn(req, res).catch((e) => res.status(e.status || 500).json({ error: e.message }));
 
 app.get('/', (req, res) => res.json({
-  service: 'corridor402',
+  service: 'Local402',
   gateway: account.address,
   chainId: 42220,
   payIn: LOCAL,
@@ -109,4 +109,4 @@ app.post('/call/:id', wrap(async (req, res) => {
 app.get('/history', (req, res) => res.json(ledger.history()));
 
 const port = Number(process.env.PORT || 4020);
-app.listen(port, () => console.log(`corridor402 gateway ${account.address} on :${port}`));
+app.listen(port, () => console.log(`Local402 gateway ${account.address} on :${port}`));

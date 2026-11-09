@@ -17,7 +17,7 @@ export function depositSeen(txHash) { return !!load().deposits[txHash.toLowerCas
 
 export function recordDeposit(txHash, record) {
   const db = load();
-  const token = `c402_${crypto.randomBytes(24).toString('hex')}`;
+  const token = `l402_${crypto.randomBytes(24).toString('hex')}`;
   db.deposits[txHash.toLowerCase()] = { ...record, credit: hash(token), at: new Date().toISOString() };
   db.credits[hash(token)] = { owner: record.from, balance: record.creditedAtomic, deposits: [txHash.toLowerCase()] };
   save(db);

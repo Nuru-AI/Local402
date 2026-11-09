@@ -1,10 +1,10 @@
-# corridor402
+# Local402
 
-**Pay for any agent service in your own currency.**
+**Pay for any agent service like a local: in your own currency.**
 
 Most paid APIs for AI agents are priced in US dollars and paid in USD stablecoins. Many of the people
 and agents who want them hold Argentine pesos, Brazilian reais, Colombian pesos or Nigerian naira.
-corridor402 is a small open-source gateway on Celo that closes that gap:
+Local402 is a small open-source gateway on Celo that closes that gap:
 
 1. It lists x402 services with their price shown in **wARS, wBRL, wCOP or cNGN**, using live rates from
    [Textile FX](https://docs.textilecredit.com).

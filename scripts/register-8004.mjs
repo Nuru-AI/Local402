@@ -7,7 +7,7 @@ const abi = parseAbi([
   'function register(string agentURI) returns (uint256)',
   'event Registered(uint256 indexed agentId, string agentURI, address indexed owner)',
 ]);
-const agentURI = process.env.AGENT_URI || 'https://raw.githubusercontent.com/Nuru-AI/corridor402/main/agent.json';
+const agentURI = process.env.AGENT_URI || 'https://raw.githubusercontent.com/Nuru-AI/Local402/main/agent.json';
 
 const account = loadAccount();
 const receipt = await sendTagged(account, {

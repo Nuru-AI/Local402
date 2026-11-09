@@ -1,5 +1,5 @@
 {
-  "name": "corridor402",
+  "name": "local402",
   "version": "0.1.0",
   "description": "Pay for any x402 agent service in your own currency: local stablecoins on Celo, converted on Textile FX.",
   "main": "src/server.mjs",
