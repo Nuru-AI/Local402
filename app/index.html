@@ -1,430 +1,95 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Local402 on Celo</title>
-<link rel="canonical" href="https://sippar.network/local402/" />
-<meta name="description" content="Sip the world's data and AI in your own currency: pesos, reais or naira, a cent at a time, with no account, no card and no ID. Live Local402 activity on Celo mainnet, read straight from the chain." />
-<meta name="theme-color" content="#FFFFFF" />
-<meta name="color-scheme" content="light" />
-<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-<link rel="preload" href="./fonts/orbitron-v35-latin-700.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="preload" href="./fonts/inter-v20-latin.woff2" as="font" type="font/woff2" crossorigin />
-<!--
-  Local402 (Celo "Agents on Open Rails" hackathon, 2026-11). Two copies, kept identical:
-  sippar.network/local402/ (src/frontend/public/local402/ in Nuru-AI/sippar, deployed by deploy-frontend.yml) and
-  app/ in github.com/Nuru-AI/Local402. Edit the Sippar copy, then copy the folder to the Local402 repo.
-
-  Everything on the page is read live in the browser: Blockscout for the agent wallet and the demo buyer wallet,
-  the ERC-8021 attribution tag decoded from each transaction's calldata, and Self Agent ID #198 checked with
-  ownerOf(198) through forno. Textile's and buy's APIs refuse browser calls, so no read goes to them.
-
-  Look (2026-11-09, Elad: "the same look as /pass/, /connect/ and /knowledge/"): their composition, unchanged in
-  palette, fonts, header, buttons and footer. Always light. A landing page (Elad's review on PR #7187): the main idea and a live
-  count first, what you can ask for (source icons from the logo engine, tools/secondaries-radar/cache-logos.py), how it
-  works, then the easy way in, an Unlock code drawn as a card in the family of Sippar's Unlock card (card checkout is
-  marked as next until it exists), who it runs on (buy's icon from its own site), and the live proof last. The hero is a paper pass whose stub carries the
-  local402 mark (Elad's brand v2, built on the Sippar v2 construction) and the live Self check. Fonts and SVGs
-  are self-hosted in this folder so both copies work on their own.
--->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local402 · live on Celo</title>
+<meta name="description" content="Sip the world's data and AI in your own currency. Live Local402 activity on Celo mainnet, read straight from the chain.">
 <style>
-  @font-face{font-family:Orbitron; font-weight:700; font-display:swap;
-    src:url('./fonts/orbitron-v35-latin-700.woff2') format('woff2')}
-  @font-face{font-family:Inter; font-weight:100 900; font-display:swap;
-    src:url('./fonts/inter-v20-latin.woff2') format('woff2')}
-  @font-face{font-family:"JetBrains Mono"; font-weight:100 800; font-display:swap;
-    src:url('./fonts/jetbrains-mono-v24-latin.woff2') format('woff2')}
-  :root{
-    color-scheme:light;
-    --bg:#FFFFFF; --panel:#F4EFE6; --ink:#131B31; --ink-2:#2C3450; --grey:#525C73; --tint:#FAF7F2;
-    --border:#DED8CE; --copper:#8A6242; --danger:#A8442A; --ok:#2F6B45;
-    --btn-bg:#131B31; --btn-ink:#FFFFFF; --r:12px;
-    --stub-w:240px;
-    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
-    --ease:cubic-bezier(0.23,1,0.32,1);
-  }
-  .pass{--panel:#F4EFE6; --stub:#EDE4D3}
-  *{box-sizing:border-box}
-  html,body{margin:0}
-  body{background:var(--bg); color:var(--ink); font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-    min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased}
-  ::selection{background:#EDE4D3; color:var(--ink)}
-  header{display:flex; align-items:center; gap:12px; min-height:44px; width:min(880px,100%); margin:0 auto;
-    padding:16px 16px 0}
-  .brand{display:flex; align-items:center; gap:14px; min-width:0}
-  .hword{display:inline-flex; padding:13px 0}
-  .hword img{height:18px; width:auto; display:block}
-  .pdiv{width:1px; height:22px; background:var(--border); flex:none}
-  .ptitle{font-family:Orbitron,system-ui,sans-serif; font-weight:700; font-size:13px; letter-spacing:.14em;
-    text-transform:uppercase; color:var(--grey); white-space:nowrap}
-  @media (max-width:560px){ .brand{gap:10px} .ptitle{font-size:10px; letter-spacing:.08em} }
-  @media (max-width:374px){ .pdiv,.ptitle{display:none} }
-  main{flex:1; width:min(880px,100%); margin:0 auto; padding:20px 16px calc(64px + env(safe-area-inset-bottom))}
-  a{color:var(--copper); text-underline-offset:3px}
-  .ic{flex:none; display:block}
-
-  /* ---------- The hero, a paper pass; the stub is the agent and the person behind it ---------- */
-  .pass{display:grid; grid-template-columns:minmax(0,1fr) var(--stub-w); background:var(--panel); color:var(--ink);
-    border-radius:22px;
-    -webkit-mask:radial-gradient(circle 16px at calc(100% - var(--stub-w)) 0,#0000 98%,#000) top/100% 51% no-repeat,
-                 radial-gradient(circle 16px at calc(100% - var(--stub-w)) 100%,#0000 98%,#000) bottom/100% 51% no-repeat;
-            mask:radial-gradient(circle 16px at calc(100% - var(--stub-w)) 0,#0000 98%,#000) top/100% 51% no-repeat,
-                 radial-gradient(circle 16px at calc(100% - var(--stub-w)) 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
-  .card{padding:40px 40px 36px; min-width:0}
-  .card > *{max-width:540px}
-  .stub{position:relative; padding:36px 26px 32px; display:grid; align-content:space-between; gap:24px;
-    background:var(--stub); border-radius:0 22px 22px 0; min-width:0}
-  .stub::before{content:""; position:absolute; left:-2px; top:24px; bottom:24px; border-left:4px dotted rgba(138,98,66,.45)}
-  .stub .mark{width:64px; height:64px; display:block}
-  .stub .k{display:block; font-size:13px; color:var(--grey)}
-  .stub .v{display:block; margin-top:2px; font-size:17px; font-weight:600; color:var(--ink)}
-  .stub p{margin:8px 0 0; font-size:14px; color:var(--ink-2)}
-  .check{display:flex; align-items:flex-start; gap:8px; margin-top:10px; font-size:14px; font-weight:600; color:var(--ink-2); min-height:21px}
-  .check .ic{margin-top:1px}
-  .check.ok{color:var(--ok)} .check.bad{color:var(--danger)}
-
-  h1{font-family:Orbitron,system-ui,sans-serif; font-weight:700; font-size:clamp(22px,3.2vw,32px); line-height:1.22;
-    letter-spacing:-.005em; color:var(--copper); margin:0 0 12px; text-wrap:balance}
-  .q{color:var(--ink-2); font-size:17px; margin:0; text-wrap:pretty}
-  .lede{color:var(--ink); font-size:16px; margin:20px 0 0; text-wrap:pretty}
-  .acts{display:flex; flex-wrap:wrap; align-items:center; column-gap:22px; row-gap:4px; margin-top:24px}
-  .btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; border-radius:10px; background:var(--btn-bg);
-    color:var(--btn-ink); font-size:16px; line-height:1.2; font-weight:600; min-height:48px; padding:0 20px; text-decoration:none;
-    touch-action:manipulation; transition:transform .16s var(--ease)}
-  .btn:active{transform:scale(.98)}
-  .link{display:inline-flex; align-items:center; gap:6px; min-height:44px; font-size:15px; font-weight:600; color:var(--copper);
-    text-decoration:underline; text-underline-offset:3px}
-  button:focus-visible,a:focus-visible{outline:2px solid var(--copper); outline-offset:2px}
-
-  /* ---------- Sections on white ---------- */
-  section{margin-top:56px}
-  h2{font-size:22px; font-weight:650; line-height:1.3; margin:0; color:var(--ink)}
-  .sub{color:var(--grey); font-size:15px; margin:6px 0 0; max-width:62ch}
-  .note{color:var(--grey); font-size:14px; margin:14px 0 0; max-width:66ch}
-
-  /* The four steps: a quiet ledger, in order, because the order is the design */
-  .ledger{list-style:none; margin:16px 0 0; padding:0; border:1px solid var(--border); border-radius:16px; background:#FFFFFF; overflow:hidden}
-  .ledger > li + li{border-top:1px solid var(--border)}
-  .step{display:grid; grid-template-columns:36px minmax(0,1fr); gap:16px; padding:18px 20px}
-  .step .n{width:32px; height:32px; border-radius:50%; display:grid; place-items:center; box-shadow:inset 0 0 0 1.5px var(--copper);
-    color:var(--copper); font-weight:700; font-size:15px; font-variant-numeric:tabular-nums}
-  .step b{display:block; font-size:16px; line-height:1.4; font-weight:650}
-  .step span{display:block; margin-top:4px; color:var(--ink-2); font-size:15px; max-width:64ch}
-
-  /* The counts: a receipt, printed from the chain as the page loads */
-  .receipt{margin:16px 0 0; padding:6px 20px; border:1px solid var(--border); border-radius:16px; background:var(--tint);
-    display:grid; grid-template-columns:1fr; column-gap:40px}
-  .receipt div{display:flex; align-items:baseline; gap:10px; padding:12px 0; border-bottom:1px dotted rgba(138,98,66,.45)}
-  .receipt div:last-child{border-bottom:0}
-  .receipt dt{color:var(--ink-2); font-size:15px; flex:1; min-width:0}
-  .receipt dd{margin:0; font-family:var(--mono); font-size:24px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--ink); min-width:2ch; text-align:right}
-  @media (min-width:761px){
-    .receipt{grid-template-columns:1fr 1fr}
-    .receipt div:nth-last-child(2){border-bottom:0}
-  }
-  .sk{display:inline-block; width:2.2ch; height:.9em; border-radius:6px; background:var(--panel); vertical-align:-2px}
-  @media (prefers-reduced-motion:no-preference){ .sk{animation:pulse 1.2s ease-in-out infinite} }
-  @keyframes pulse{50%{opacity:.45}}
-
-  /* Activity: one row per transaction, newest first */
-  .act-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-top:32px}
-  .act-head h3{font-size:17px; font-weight:650; margin:0}
-  .act-head .count{color:var(--grey); font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap}
-  .tx{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 16px; align-items:center; padding:14px 18px;
-    color:inherit; text-decoration:none; touch-action:manipulation}
-  a.tx:focus-visible{outline-offset:-2px}
-  @media (hover:hover){ a.tx:hover{background:var(--tint)} a.tx:hover .h{text-decoration-thickness:2px} }
-  .tx .t{font-size:15px; font-weight:600; line-height:1.4}
-  .tx .s{grid-column:1; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:center; color:var(--grey); font-size:13.5px}
-  .tx .s .amt{font-family:var(--mono); color:var(--ink-2); font-size:13px}
-  .tx .h{grid-column:2; grid-row:1 / span 2; display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:13px;
-    font-weight:500; color:var(--copper); text-decoration:underline; text-underline-offset:3px}
-  .tag{display:inline-flex; align-items:center; gap:5px; padding:1px 9px; border-radius:999px; font-size:12.5px; font-weight:600; white-space:nowrap}
-  .tag.on{box-shadow:inset 0 0 0 1px var(--ok); color:var(--ok)}
-  .tag.off{box-shadow:inset 0 0 0 1px var(--border); color:var(--grey)}
-  .tag .mono{font-family:var(--mono); font-weight:500}
-  .tx.msg{display:flex; gap:10px; align-items:flex-start; color:var(--ink-2); font-size:15px}
-  .tx.msg.bad{color:var(--danger)}
-  .more{display:inline-flex; align-items:center; gap:8px; margin-top:12px; min-height:44px; padding:0 18px; border:0; border-radius:10px;
-    background:#FFFFFF; box-shadow:inset 0 0 0 1px var(--border); color:var(--ink); font:inherit; font-size:15px; font-weight:600; cursor:pointer;
-    touch-action:manipulation}
-  @media (hover:hover){ .more:hover{background:var(--tint)} }
-  .more[aria-expanded="true"] .ic{transform:rotate(180deg)}
-  .more[hidden]{display:none}
-  @media (max-width:560px){
-    .tx{grid-template-columns:1fr; padding:14px 16px}
-    .tx .h{grid-column:1; grid-row:auto; justify-self:start; margin-top:2px}
-  }
-
-  /* Who it runs on: each with its own icon (logo engine; buy's from its own site) */
-  .with{list-style:none; margin:16px 0 0; padding:0; display:grid; grid-template-columns:1fr; gap:0 40px}
-  .with li{display:flex; gap:14px; align-items:flex-start; padding:14px 0; border-bottom:1px solid var(--border)}
-  .with img{width:32px; height:32px; border-radius:8px; flex:none}
-  .with b{display:block; font-weight:650}
-  .with span{display:block; color:var(--ink-2); font-size:15px}
-  @media (min-width:761px){ .with{grid-template-columns:1fr 1fr} }
-
-  .closing{margin-top:64px}
-  .closing p{margin:0}
-  .closing .line{font-family:Orbitron,system-ui,sans-serif; font-weight:700; font-size:clamp(18px,2.4vw,22px); line-height:1.35; color:var(--copper); text-wrap:balance}
-  .closing .by{margin-top:10px; color:var(--grey); font-size:15px}
-
-  /* ---------- The Unlock code, drawn as a card (Elad, 2026-11-09: "design and add an unlocks local402 celo card") ----------
-     The family of Sippar's Unlock card (demos/unlock-card, .card.cc): credit-card proportions, navy face, cream type,
-     the name in Orbitron. No picture behind the type, so Elad's copper local402 mark sits on a clean field (brand rule 3).
-     The figures are the real mainnet split (one 5,011.98 wARS payment, five codes of 0.25 USD₮); the code is masked. */
-  .uc{display:grid; grid-template-columns:minmax(0,340px) minmax(0,1fr); gap:24px 40px; align-items:center; margin-top:18px}
-  .code-card{margin:0}
-  .code-card .face{position:relative; width:100%; aspect-ratio:1.586; padding:20px 22px; border-radius:18px; color:#F4EFE6; overflow:hidden;
-    display:grid; grid-template-columns:1fr auto; grid-template-rows:auto 1fr auto auto; grid-template-areas:"top top" "bal bal" "code code" "foot mark";
-    background:#08102B; box-shadow:0 1px 0 rgba(255,255,255,.08) inset, 0 18px 40px -18px rgba(8,16,43,.6), 0 2px 6px rgba(8,16,43,.25)}
-  .code-card .face::after{content:""; position:absolute; inset:0; border-radius:18px; pointer-events:none; border:1px solid rgba(244,239,230,.10)}
-  .code-card .cc-top{grid-area:top; display:flex; align-items:flex-start; gap:10px}
-  .code-card .cc-top b{display:block; font-family:Orbitron,system-ui,sans-serif; font-weight:700; font-size:14px; letter-spacing:.12em; line-height:1.15}
-  .code-card .cc-top span{display:block; font-size:12px; color:#E8DFCE; margin-top:3px}
-  .code-card .cc-top .net{margin-left:auto; margin-top:0; font-size:12px; font-weight:600; color:#F4EFE6; padding:2px 10px; border-radius:999px; box-shadow:inset 0 0 0 1px rgba(244,239,230,.35)}
-  .code-card .bal{grid-area:bal; align-self:center; margin:0; display:flex; flex-direction:column}
-  .code-card .bal .n{font-family:var(--mono); font-weight:600; font-size:clamp(26px,4vw,30px); line-height:1.05}
-  .code-card .bal .u{font-size:12px; color:#E8DFCE; margin-top:2px}
-  .code-card .code{grid-area:code; display:flex; align-items:center; gap:8px; margin:6px 0 8px; font-family:var(--mono); font-size:14px; letter-spacing:.02em; color:#E8DFCE}
-  .code-card .cc-foot{grid-area:foot; align-self:end; display:flex; flex-direction:column; font-size:11px; color:#E8DFCE; line-height:1.35}
-  .code-card .cc-foot strong{font-size:13px; color:#F4EFE6; font-weight:600}
-  .code-card .cc-mark{grid-area:mark; align-self:end; justify-self:end; width:34px; height:34px}
-  .code-card{max-width:340px}
-  .code-card figcaption{margin-top:10px; color:var(--grey); font-size:13px}
-  .uc-txt .big{font-size:18px; line-height:1.45; font-weight:600; color:var(--ink); margin:0; text-wrap:pretty}
-  .uc-txt p{margin:12px 0 0; color:var(--ink-2); max-width:60ch}
-  .facts{list-style:none; margin:16px 0 0; padding:0; display:grid; gap:8px}
-  .facts li{position:relative; padding-left:20px; font-size:15px; color:var(--ink-2)}
-  .facts li::before{content:""; position:absolute; left:2px; top:.6em; width:8px; height:8px; transform:rotate(45deg); background:var(--copper)}
-
-  /* What a code can ask for: rows in the white ledger, each with its sources' own icons (logo engine) */
-  .use{display:grid; grid-template-columns:96px minmax(0,1fr) auto; gap:4px 16px; align-items:center; padding:16px 20px}
-  .use b{display:block; font-size:16px; font-weight:650}
-  .use div span{display:block; margin-top:2px; color:var(--ink-2); font-size:15px}
-  .lgs{display:flex; gap:6px}
-  .lgs img,.lg-ic{width:28px; height:28px; border-radius:7px; display:block; flex:none}
-  .lg-ic{display:grid; place-items:center; color:var(--grey); box-shadow:inset 0 0 0 1px var(--border)}
-  .price{font-family:var(--mono); font-size:13px; color:var(--ink-2); white-space:nowrap; font-variant-numeric:tabular-nums}
-  @media (max-width:560px){
-    .use{grid-template-columns:minmax(0,1fr); padding:16px; gap:8px}
-    .use .price{justify-self:start}
-    .use .price:empty{display:none}
-  }
-
-  @media (max-width:760px){
-    .uc{grid-template-columns:1fr}
-  }
-  .live-line{display:flex; align-items:center; gap:10px; margin:18px 0 0; font-size:15px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums}
-  .live-line .dot{width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 3px rgba(47,107,69,.18); flex:none}
-  .live-line.bad .dot{background:var(--grey); box-shadow:none}
-  .links{display:flex; flex-wrap:wrap; column-gap:22px; margin:10px 0 0}
-
-  /* ---------- Motion: the pass prints in once, on load ---------- */
-  @media (prefers-reduced-motion:no-preference){
-    .pass{animation:print .9s var(--ease) both}
-    .stub{animation:tear .8s var(--ease) .35s both}
-    @keyframes print{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0)}}
-    @keyframes tear{from{transform:translateX(-10px) rotate(-1.5deg); opacity:.4}to{transform:none; opacity:1}}
-  }
-
-  /* ---------- Phone: the stub tears off along the bottom ---------- */
-  @media (max-width:760px){
-    main{padding-top:12px}
-    .pass{grid-template-columns:1fr; -webkit-mask:none; mask:none}
-    .card{padding:26px 20px 24px}
-    .stub{padding:20px; grid-template-columns:auto 1fr; align-items:start; gap:16px; border-radius:0 0 22px 22px}
-    .stub .mark{width:48px; height:48px}
-    .stub::before{left:20px; right:20px; top:-2px; bottom:auto; border-left:0; border-top:4px dotted rgba(138,98,66,.45)}
-    .acts .btn{width:100%}
-    section{margin-top:44px}
-  }
-
-  /* The sippar.network footer, unchanged, as /pass/, /connect/ and /knowledge/ carry it */
-  .wrap{max-width:1120px; margin:0 auto; padding:0 clamp(16px,4vw,48px)}
-  .sf{background:#08102B; border-top:1px solid rgba(212,160,116,.2); color:#94A0B8; padding:56px 0 28px}
-  .sf a{color:#94A0B8; text-decoration:none; display:inline-flex; align-items:center; min-height:44px}
-  @media (hover:hover){ .sf a:hover{color:#F4EFE6; text-decoration:underline; text-underline-offset:4px} }
-  .sf :focus-visible{outline-color:#D4A074}
-  .sf-top{display:flex; justify-content:space-between; align-items:flex-end; gap:40px; flex-wrap:wrap}
-  .sfw{height:40px; width:auto; display:block}
-  .sf-tag{margin:10px 0 0; font-family:ui-monospace,Menlo,monospace; font-size:12px; letter-spacing:.25em; text-transform:uppercase; color:#D4A074}
-  .sf-cols{display:grid; grid-template-columns:repeat(3,auto); gap:8px 48px; font-size:14px}
-  .sf-h{margin:0 0 4px; font-family:ui-monospace,Menlo,monospace; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#D4A074; font-weight:600}
-  .sf ul{list-style:none; margin:0; padding:0}
-  .sf-own{margin-top:40px; padding-top:22px; border-top:1px solid rgba(212,160,116,.15); font-size:13px; display:grid; gap:4px}
-  .sf-own p{margin:0}
-  .sf-own .links{display:flex; flex-wrap:wrap; column-gap:20px}
-  .sf-bottom{margin-top:18px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; font-family:ui-monospace,Menlo,monospace; font-size:12px; color:#8592B5}
-  .sf-bottom i{font-style:italic}
-  @media (max-width:640px){ .sf{padding-top:40px} .sf-top{gap:20px} .sf-cols{grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:16px; width:100%} .sf-own{margin-top:24px} }
+  :root { --bg:#0E1A38; --panel:#142140; --ink:#F4EFE6; --mute:#94A0B8; --accent:#D4A074; --ok:#7BD389; --bad:#E07A5F; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 2.1rem; margin: 8px 0 4px; letter-spacing: .02em; }
+  h1 span { color: var(--accent); }
+  .lead { font-size: 1.15rem; color: var(--ink); margin: 0 0 6px; }
+  .sub { color: var(--mute); margin: 0 0 20px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin: 18px 0; }
+  .stat { background:var(--panel); border-radius:12px; padding:14px; }
+  .stat b { display:block; font-size:1.6rem; color:var(--accent); font-family: ui-monospace, Menlo, monospace; }
+  .stat small { color:var(--mute); }
+  section { background:var(--panel); border-radius:14px; padding:16px; margin: 14px 0; }
+  h2 { font-size:1.15rem; margin:0 0 10px; }
+  ol, ul { margin: 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+  table { width:100%; border-collapse: collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid #22305a; vertical-align: top; }
+  th { color:var(--mute); font-weight:500; }
+  td.mono, .mono { font-family: ui-monospace, Menlo, monospace; font-size:.82rem; }
+  a { color: var(--accent); }
+  .tag-ok { color: var(--ok); } .tag-none { color: var(--mute); }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; background:#22305a; font-size:.78rem; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row a.btn { background:var(--accent); color:#0E1A38; text-decoration:none; padding:9px 14px; border-radius:10px; font-weight:600; }
+  .row a.ghost { background:transparent; border:1px solid var(--accent); color:var(--accent); }
+  .scroll { overflow-x:auto; }
+  footer { color:var(--mute); text-align:center; margin-top: 28px; }
 </style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <a class="hword" href="/" aria-label="Sippar home"><img src="./sippar-wordmark-ink.svg" alt="sippar" width="95" height="18" /></a>
-    <span class="pdiv" aria-hidden="true"></span>
-    <span class="ptitle">Local402</span>
-  </div>
-</header>
 <main>
-  <article class="pass">
-    <div class="card">
-      <h1>Sip the world's data and AI in your own currency</h1>
-      <p class="q">Pay in pesos, reais, naira or dollars, a cent at a time. Textile FX makes every currency crossing at a firm quote.</p>
-      <p class="lede">It works both ways: people pay for data and AI in their own currency, and AI assistants pay people in theirs. Whoever pays in pesos or naira, or uses an Unlock code, needs no account, no card and no ID.</p>
-      <p class="live-line" id="live-line"><span class="dot" aria-hidden="true"></span><span>Reading Celo mainnet</span></p>
-      <div class="acts">
-        <a class="btn" href="#live">See it live on Celo</a>
-        <a class="link" href="https://github.com/Nuru-AI/Local402"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>Code and docs on GitHub</a>
-      </div>
-    </div>
-    <aside class="stub" aria-label="Who stands behind the agent">
-      <img class="mark" src="./local402-mark-ink.svg" alt="local402" width="64" height="64" />
-      <div>
-        <span class="k">Self Agent ID</span>
-        <span class="v">#198, held by the agent wallet</span>
-        <div class="check" id="self-check" aria-live="polite"><span class="sk" aria-hidden="true"></span><span>Checking on Celo</span></div>
-        <p>A real, verified person stands behind the agent. The people it serves never show an ID.</p>
-      </div>
-    </aside>
-  </article>
+  <div style="background:#F4EFE6;border-radius:14px;padding:14px;display:inline-block;margin-bottom:10px"><img src="logo.png" alt="local402" width="120" height="111" style="display:block"></div>
+  <div class="pill">Celo mainnet · live</div>
+  <h1>Local<span>402</span></h1>
+  <p class="lead">Sip the world's data and AI in your own currency: pesos, reais or naira, a cent at a time, with no account, no card and no ID.</p>
+  <p class="sub">Everything below is read live from the Celo blockchain in your browser. Nothing on this page is typed in by hand.</p>
+  <div class="row">
+    <a class="btn" href="https://github.com/Nuru-AI/Local402">Code and docs</a>
+    <a class="btn ghost" href="https://8004scan.io/agents/celo/10063">Agent #10063 on 8004scan</a>
+    <a class="btn ghost" href="https://celoscan.io/address/0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B">Agent wallet on Celoscan</a>
+  </div>
+  <p class="sub" style="margin-top:12px">Human-backed: the agent wallet holds Self Agent ID #198, a passport zero-knowledge proof that a real, unique person stands behind it (<span id="self-check">checking on-chain…</span>). The people it serves never have to show an ID.</p>
+  <div>
+  </div>
 
-  <section aria-labelledby="ask">
-    <h2 id="ask">What you can ask for</h2>
-    <p class="sub">Paid services from buy's Celo catalogue, each paid per call over x402, at the price shown.</p>
-    <ul class="ledger uses">
-      <li class="use"><span class="lgs"><img src="./logos/tiktok.com.png" alt="TikTok" width="28" height="28" /><img src="./logos/reddit.com.png" alt="Reddit" width="28" height="28" /><img src="./logos/x.com.png" alt="X" width="28" height="28" /></span>
-        <div><b>What people are saying</b><span>X and Reddit search, and TikTok data from an Apify Actor.</span></div><span class="price">from 0.005 USD₮</span></li>
-      <li class="use"><span class="lgs"><img src="./logos/cencori.com.png" alt="Cencori" width="28" height="28" /></span>
-        <div><b>Answers from an AI model</b><span>Ask a model through Cencori. One mainnet answer came back in Spanish.</span></div><span class="price">0.01 USD₮</span></li>
-      <li class="use"><span class="lgs"><span class="lg-ic"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span></span>
-        <div><b>Flights</b><span>Search Google Flights for one-way or round-trip trips.</span></div><span class="price">0.023 USD₮</span></li>
-      <li class="use"><span class="lgs"><img src="./logos/chainstack.com.png" alt="Chainstack" width="28" height="28" /></span>
-        <div><b>The Celo chain</b><span>Read Celo through Chainstack RPC.</span></div><span class="price">0.01 USD₮</span></li>
-    </ul>
-  </section>
+  <div class="grid" id="stats">
+    <div class="stat"><b id="s-fills">…</b><small>Textile FX fills</small></div>
+    <div class="stat"><b id="s-calls">…</b><small>paid data and AI calls (x402)</small></div>
+    <div class="stat"><b id="s-tagged">…</b><small>transactions carrying our attribution tag</small></div>
+    <div class="stat"><b id="s-local">…</b><small>local-currency payments received</small></div>
+  </div>
 
-  <section aria-labelledby="how">
-    <h2 id="how">How it works</h2>
-    <ol class="ledger">
-      <li class="step"><span class="n">1</span><div><b>Pay in your own money</b><span>Pay once on Celo in Ripio's wARS or in cNGN.</span></div></li>
-      <li class="step"><span class="n">2</span><div><b>One Textile trade opens a channel</b><span>Textile FX converts the payment at a firm quote. A trade starts at about one dollar, so one trade opens a payment channel instead of paying for a single call.</span></div></li>
-      <li class="step"><span class="n">3</span><div><b>Sip data and AI with signed vouchers</b><span>Each call is a signed voucher, with no transaction and no exchange. Local402 pays the service over x402 through buy.</span></div></li>
-      <li class="step"><span class="n">4</span><div><b>Close and get the rest back</b><span>One more Textile trade returns what is left in the buyer's own currency.</span></div></li>
+  <section>
+    <h2>How it works</h2>
+    <ol>
+      <li><b>Pay in your own money.</b> Someone holding wARS (Ripio), wBRL, wCOP or cNGN pays once on Celo. A shop, a friend or a community group can split that credit into Unlock codes for people with no wallet at all.</li>
+      <li><b>One Textile trade opens a channel.</b> Textile FX converts the payment at a firm quote. Its trades start at about one dollar, so one trade opens a payment channel instead of paying for a single call.</li>
+      <li><b>Sip data and AI.</b> Every call is a signed voucher, with no transaction and no exchange: X, Reddit and TikTok data (via Apify), Celo RPC from Chainstack, answers from Cencori, all bought through buy over x402.</li>
+      <li><b>Close.</b> One more Textile trade returns what is left in the buyer's own currency.</li>
     </ol>
-    <p class="note">It works the other way too. Connect the Local402 MCP server and an AI assistant can hire data and AI on Celo, or buy a budget in pesos or naira in one Textile trade and pay people and agents from it, one signed voucher at a time, within a spending cap you agreed to.</p>
+    <p class="sub" style="margin-top:10px">It works the other way too: through the Local402 MCP server, Claude and other assistants hire data and AI on Celo and pay people and agents in their own currency.</p>
   </section>
 
-  <section id="unlock" aria-labelledby="unlock-h">
-    <h2 id="unlock-h">The easy way in: an Unlock code</h2>
-    <div class="uc">
-      <figure class="code-card">
-        <div class="face" role="img" aria-label="A Local402 Unlock code on Celo: 0.25 USD₮ of data and AI, paid once in wARS, no wallet needed. The code itself is hidden.">
-          <div class="cc-top"><div><b>UNLOCK CODE</b><span>Data and AI, by the sip</span></div><span class="net">Celo</span></div>
-          <p class="bal"><span class="n">0.25 USD₮</span><span class="u">of data and AI</span></p>
-          <p class="code"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>unlock_•••• •••• ••••</p>
-          <div class="cc-foot"><span>Paid once in wARS</span><strong>No wallet needed</strong></div>
-          <img class="cc-mark" src="./local402-mark.svg" alt="" width="34" height="34" />
-        </div>
-        <figcaption>One of five codes split from a single payment of 5,011.98 wARS on Celo mainnet. The code itself stays private.</figcaption>
-      </figure>
-      <div class="uc-txt">
-        <p class="big">An Unlock code holds credit for data and AI, so the person using it needs no wallet, account or ID.</p>
-        <p>Pay in pesos or naira on Celo and the credit can be split into codes. Give one to someone over WhatsApp or on paper and it works the same for them, from a simple web call or an AI assistant.</p>
-        <ul class="facts">
-          <li>Card checkout, like Sippar's Unlock card, is next.</li>
-          <li>Most calls above draw half a cent to a cent from a code.</li>
-          <li>Codes buy data and AI through Local402 and cannot be cashed out.</li>
-        </ul>
-      </div>
-    </div>
+  <section>
+    <h2>Live activity</h2>
+    <p class="sub">The agent wallet and the demo buyer wallet (ours, funded by us, not an independent user). Tags are decoded from each transaction's calldata here, in your browser.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Time (UTC)</th><th>What happened</th><th>Amount</th><th>Tag</th><th>Tx</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5">Reading Celo…</td></tr></tbody>
+    </table></div>
   </section>
 
-  <section aria-labelledby="with">
-    <h2 id="with">Runs on</h2>
-    <ul class="with">
-      <li><img src="./logos/celo.org.png" alt="" width="32" height="32" /><div><b>Celo</b><span>The chain. Gas is paid in USD₮, so the agent never holds CELO.</span></div></li>
-      <li><img src="./logos/textilecredit.com.png" alt="" width="32" height="32" /><div><b>Textile FX</b><span>Every currency exchange, at a firm quote from its market makers.</span></div></li>
-      <li><img src="./logos/ripio.com.png" alt="" width="32" height="32" /><div><b>Ripio</b><span>wARS, the Argentine peso on Celo.</span></div></li>
-      <li><img src="./logos/cngn.co.png" alt="" width="32" height="32" /><div><b>cNGN</b><span>The Nigerian naira on Celo.</span></div></li>
-      <li><img src="./logos/usebuy.ai.png" alt="" width="32" height="32" /><div><b>buy</b><span>Celo's marketplace for agents, where every call is paid over x402.</span></div></li>
-      <li><img src="./logos/apify.com.png" alt="" width="32" height="32" /><div><b>Apify</b><span>TikTok data from an Apify Actor.</span></div></li>
-      <li><img src="./logos/chainstack.com.png" alt="" width="32" height="32" /><div><b>Chainstack</b><span>Celo RPC.</span></div></li>
-      <li><img src="./logos/cencori.com.png" alt="" width="32" height="32" /><div><b>Cencori</b><span>AI answers.</span></div></li>
-      <li><img src="./logos/self.xyz.png" alt="" width="32" height="32" /><div><b>Self</b><span>The agent's ID: proof that a real person stands behind it.</span></div></li>
-    </ul>
-  </section>
-
-  <section id="live" aria-labelledby="live-h">
-    <h2 id="live-h">Live on Celo mainnet</h2>
-    <p class="sub">Read from the chain by your browser as this page loads. Nothing here is typed in by hand.</p>
-    <dl class="receipt">
-      <div><dt>Textile FX fills</dt><dd id="s-fills"><span class="sk"></span></dd></div>
-      <div><dt>Paid data and AI calls over x402</dt><dd id="s-calls"><span class="sk"></span></dd></div>
-      <div><dt>Transactions with our attribution tag</dt><dd id="s-tagged"><span class="sk"></span></dd></div>
-      <div><dt>Local-currency payments received</dt><dd id="s-local"><span class="sk"></span></dd></div>
-    </dl>
-    <p class="links"><a class="link" href="https://8004scan.io/agents/celo/10063">Agent #10063 on 8004scan<svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a><a class="link" href="https://celoscan.io/address/0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B">Agent wallet on Celoscan<svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a></p>
-
-    <div class="act-head"><h3>Activity</h3><span class="count" id="act-count"></span></div>
-    <ul class="ledger" id="rows" aria-live="polite">
-      <li class="tx msg"><span class="sk" aria-hidden="true"></span><span>Reading Celo</span></li>
-    </ul>
-    <button class="more" id="more" type="button" aria-expanded="false" aria-controls="rows" hidden></button>
-    <p class="note">Two wallets: the agent's, and a demo buyer wallet that is ours and funded by us, so it is not an independent user. Tags are decoded from each transaction's calldata here, in your browser. x402 payments are sent by the seller's facilitator and cannot carry a tag yet.</p>
-  </section>
-
-  <div class="closing">
-    <p class="line">Building prosperity for all, one sip at a time.</p>
-    <p class="by">Built by the team behind Sippar. Open source under the MIT licence, <a href="https://github.com/Nuru-AI/Local402">on GitHub</a>.</p>
-  </div>
+  <footer>Built by the team behind Sippar · Building prosperity for all, one sip at a time.</footer>
 </main>
-
-<footer class="sf">
-  <div class="wrap">
-    <div class="sf-top">
-      <div>
-        <a href="https://sippar.network" aria-label="Sippar home"><img class="sfw" src="./sippar-wordmark.svg" alt="Sippar" width="211" height="40" /></a>
-        <p class="sf-tag">Every service, by the sip.</p>
-      </div>
-      <nav class="sf-cols" aria-label="Sippar">
-        <div><p class="sf-h">Product</p><ul><li><a href="https://sippar.network/connector/">Connector</a></li><li><a href="https://sippar.network/unlock-card/">Unlock card</a></li><li><a href="https://sippar.network/seedstore/">SeedStore</a></li></ul></div>
-        <div><p class="sf-h">Develop</p><ul><li><a href="https://sippar.network/developers">Developers</a></li><li><a href="https://sippar.network/mcp/">MCP</a></li></ul></div>
-        <div><p class="sf-h">Company</p><ul><li><a href="https://sippar.network/about">About</a></li><li><a href="mailto:elad@sippar.network">Contact</a></li></ul></div>
-      </nav>
-    </div>
-    <div class="sf-own">
-      <p class="indep">Sippar is not affiliated with the platforms, suppliers and assistants named on this page; their names belong to their owners.</p>
-      <p class="links"><a href="https://github.com/Nuru-AI/Local402/issues">Report a problem</a><a href="https://sippar.network/legal.html#impressum">Impressum</a><a href="https://sippar.network/legal.html#privacy">Privacy</a></p>
-    </div>
-    <div class="sf-bottom"><span>© 2026 Sippar</span><i>Sippar · ancient Mesopotamian city sacred to Shamash ("City of the Sun")</i></div>
-  </div>
-</footer>
 <script>
 const GATEWAY = '0xa781cae75185e6abf8efbf5e1f5bc7eb4400d08b';
 const BUYER = '0xa9a8fdf5b540489b22b65740310d5f9b66a04328';
 const REACTOR = '0xa9aa0a64769cbed4d3b1ceb4df01cde915c235b3';
 const BUY_PAYTO = '0x20faaca5f980e29639a0fcc6dca6988e18ed333b';
 const REGISTRY = '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432';
-const SELF_REGISTRY = '0xaC3DF9ABf80d0F5c020C06B04Cced27763355944';
 const LOCAL = ['WARS', 'WBRL', 'WCOP', 'CNGN'];
 const API = 'https://celo.blockscout.com/api/v2';
 const MARKER = '80218021802180218021802180218021';
-const FIRST = 10; // rows shown before "Show all"
-
-const svg = (paths, size = 16) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
-const IC = {
-  shield: svg('<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>', 18),
-  alert: svg('<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>', 18),
-  tag: svg('<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>', 13),
-  ext: svg('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>', 13),
-  down: svg('<path d="m6 9 6 6 6-6"/>', 18),
-};
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const $ = (id) => document.getElementById(id);
 
 function decodeTag(input) {
   const h = (input || '').toLowerCase().replace(/^0x/, '');
@@ -438,106 +103,72 @@ function decodeTag(input) {
 }
 const short = (h) => h.slice(0, 10) + '…';
 const fmt = (v, d) => (Number(v) / 10 ** Number(d)).toLocaleString('en-US', { maximumFractionDigits: 4 });
-const when = (ts) => {
-  const d = new Date(ts);
-  return isNaN(d) ? '' : d.toLocaleString('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' UTC';
-};
 
-async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
-// Follow Blockscout's pages so nothing past the first 50 is missed.
-async function all(path, query) {
-  let url = `${API}${path}?${query}`, items = [];
-  for (let i = 0; i < 10 && url; i++) {
-    const j = await getJSON(url);
-    items = items.concat(j.items || []);
-    url = j.next_page_params ? `${API}${path}?${query}&` + new URLSearchParams(j.next_page_params) : null;
-  }
-  return items;
-}
-
-let ROWS = [], open = false;
-function draw() {
-  const list = open ? ROWS : ROWS.slice(0, FIRST);
-  $('rows').innerHTML = list.map((r) => {
-    const tag = r.tag === 'x402'
-      ? '<span class="tag off">x402, no tag</span>'
-      : r.tag ? `<span class="tag on">${IC.tag}<span class="mono">${esc(r.tag)}</span></span>` : '<span class="tag off">no tag</span>';
-    return `<li><a class="tx" href="https://celoscan.io/tx/${esc(r.hash)}" target="_blank" rel="noopener">
-      <span class="t">${esc(r.what)}</span>
-      <span class="s"><span>${esc(when(r.ts))}</span>${r.amount ? `<span class="amt">${esc(r.amount)}</span>` : ''}${tag}</span>
-      <span class="h" title="${esc(r.hash)}">${esc(short(r.hash))}${IC.ext}</span>
-    </a></li>`;
-  }).join('');
-  const more = $('more');
-  more.hidden = ROWS.length <= FIRST;
-  more.setAttribute('aria-expanded', String(open));
-  more.innerHTML = (open ? 'Show the newest ' + FIRST : 'Show all ' + ROWS.length) + IC.down;
-}
-$('more').addEventListener('click', () => { open = !open; draw(); });
+async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return r.json(); }
 
 async function load() {
   const [gTx, bTx, gTr] = await Promise.all([
-    all(`/addresses/${GATEWAY}/transactions`, 'filter=from'),
-    all(`/addresses/${BUYER}/transactions`, 'filter=from'),
-    all(`/addresses/${GATEWAY}/token-transfers`, 'type=ERC-20'),
+    getJSON(`${API}/addresses/${GATEWAY}/transactions?filter=from`),
+    getJSON(`${API}/addresses/${BUYER}/transactions?filter=from`),
+    (async () => {
+      // Follow pages so every transfer is counted.
+      let url = `${API}/addresses/${GATEWAY}/token-transfers?type=ERC-20`, items = [];
+      for (let i = 0; i < 8 && url; i++) {
+        const j = await getJSON(url);
+        items = items.concat(j.items || []);
+        url = j.next_page_params ? `${API}/addresses/${GATEWAY}/token-transfers?type=ERC-20&` + new URLSearchParams(j.next_page_params) : null;
+      }
+      return { items };
+    })(),
   ]);
+  const sent = [...(gTx.items || []), ...(bTx.items || [])];
   const rows = [];
   let fills = 0, tagged = 0, calls = 0, local = 0;
-  // Our own transactions: classify each and decode its tag from calldata.
-  await Promise.all([...gTx, ...bTx].map(async (t) => {
+  // Our own transactions: classify and decode the tag from calldata.
+  await Promise.all(sent.map(async (t) => {
     let input = t.raw_input;
     if (!input) { try { input = (await getJSON(`${API}/transactions/${t.hash}`)).raw_input; } catch { input = ''; } }
     const tag = decodeTag(input);
     if (tag) tagged++;
     const to = (t.to?.hash || '').toLowerCase();
-    let what = t.method || 'Transaction';
-    if (to === REACTOR) { what = 'Textile FX fill at a firm quote'; fills++; }
-    else if (to === REGISTRY) what = 'Agent registered (ERC-8004)';
-    else if (t.method === 'approve') what = 'Token approved for Textile';
-    else if (t.method === 'transfer') what = (t.from?.hash || '').toLowerCase() === BUYER ? 'Buyer pays in local currency or moves funds' : 'Agent transfer: refund, payee settlement or demo top-up';
+    let what = t.method || 'transaction';
+    if (to === REACTOR) { what = 'Textile FX fill (firm RFQ quote)'; fills++; }
+    else if (to === REGISTRY) what = 'ERC-8004 agent registration';
+    else if (t.method === 'approve') what = 'Approve token for Textile';
+    else if (t.method === 'transfer') what = (t.from?.hash || '').toLowerCase() === BUYER ? 'Buyer pays in local currency / moves funds' : 'Agent transfer (refund, payee settlement or demo top-up)';
     rows.push({ ts: t.timestamp, what, amount: '', tag, hash: t.hash });
   }));
   // Paid x402 calls: USD₮ the agent paid to buy's facilitator payTo (submitted by the facilitator).
-  for (const x of gTr) {
+  for (const x of (gTr.items || [])) {
     const to = (x.to?.hash || '').toLowerCase(), from = (x.from?.hash || '').toLowerCase();
     if (from === GATEWAY && to === BUY_PAYTO) {
       calls++;
-      rows.push({ ts: x.timestamp, what: 'Paid data or AI call over x402, through buy', amount: `${fmt(x.total.value, x.total.decimals)} ${x.token.symbol}`, tag: 'x402', hash: x.transaction_hash });
+      rows.push({ ts: x.timestamp, what: 'Paid data/AI call over x402 (via buy)', amount: `${fmt(x.total.value, x.total.decimals)} ${x.token.symbol}`, tag: 'x402', hash: x.transaction_hash });
     }
     if (to === GATEWAY && LOCAL.includes((x.token?.symbol || '').toUpperCase()) && Number(x.total.value) > 0) local++;
   }
   rows.sort((a, b) => (a.ts < b.ts ? 1 : -1));
-  $('s-fills').textContent = fills;
-  $('s-calls').textContent = calls;
-  $('s-tagged').textContent = tagged;
-  $('s-local').textContent = local;
-  $('act-count').textContent = rows.length + ' transactions, newest first';
-  $('live-line').lastElementChild.textContent = `Live on Celo mainnet: ${fills} Textile fills and ${calls} paid data and AI calls so far.`;
-  ROWS = rows; draw();
+  document.getElementById('s-fills').textContent = fills;
+  document.getElementById('s-calls').textContent = calls;
+  document.getElementById('s-tagged').textContent = tagged;
+  document.getElementById('s-local').textContent = local;
+  document.getElementById('rows').innerHTML = rows.map((r) => `<tr>
+    <td class="mono">${(r.ts || '').slice(5, 19).replace('T', ' ')}</td>
+    <td>${r.what}</td>
+    <td class="mono">${r.amount}</td>
+    <td class="mono ${r.tag && r.tag !== 'x402' ? 'tag-ok' : 'tag-none'}">${r.tag === 'x402' ? 'payTo (x402 cannot carry tags yet)' : (r.tag || 'none')}</td>
+    <td class="mono"><a href="https://celoscan.io/tx/${r.hash}" target="_blank" rel="noopener">${short(r.hash)}</a></td>
+  </tr>`).join('');
 }
-
-function failed(e) {
-  for (const id of ['s-fills', 's-calls', 's-tagged', 's-local']) $(id).textContent = '–';
-  $('live-line').classList.add('bad'); $('live-line').lastElementChild.textContent = 'Celo could not be read right now.';
-  $('rows').innerHTML = `<li class="tx msg bad">${IC.alert}<span>Could not read Celo right now (${esc(e.message)}). <button class="more" type="button" id="retry" style="margin:8px 0 0">Try again</button></span></li>`;
-  $('retry').addEventListener('click', () => {
-    $('rows').innerHTML = '<li class="tx msg"><span class="sk" aria-hidden="true"></span><span>Reading Celo</span></li>';
-    $('live-line').classList.remove('bad');
-    load().catch(failed);
-  });
-}
-
-// Self Agent ID: ownerOf(198) on the Self registry, read from Celo in the browser.
 (async () => {
-  const el = $('self-check');
+  // ownerOf(198) on the Self Agent ID registry, read from Celo in the browser.
   try {
-    const r = await fetch('https://forno.celo.org', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: SELF_REGISTRY, data: '0x6352211e' + (198).toString(16).padStart(64, '0') }, 'latest'] }) });
+    const r = await fetch('https://forno.celo.org', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: '0xaC3DF9ABf80d0F5c020C06B04Cced27763355944', data: '0x6352211e' + (198).toString(16).padStart(64, '0') }, 'latest'] }) });
     const owner = '0x' + (await r.json()).result.slice(-40);
-    if (owner.toLowerCase() === GATEWAY) { el.className = 'check ok'; el.innerHTML = IC.shield + '<span>Verified on Celo</span>'; }
-    else { el.className = 'check bad'; el.innerHTML = IC.alert + `<span>Held by ${esc(owner)}</span>`; }
-  } catch { el.className = 'check bad'; el.innerHTML = IC.alert + '<span>Could not read Celo right now</span>'; }
+    document.getElementById('self-check').textContent = owner.toLowerCase() === GATEWAY ? 'verified: owned by the agent wallet' : 'owner ' + owner;
+  } catch { document.getElementById('self-check').textContent = 'could not read right now'; }
 })();
-load().catch(failed);
+load().catch((e) => { document.getElementById('rows').innerHTML = `<tr><td colspan="5">Could not read Celo right now (${e.message}). Try again in a moment.</td></tr>`; });
 </script>
 </body>
 </html>
