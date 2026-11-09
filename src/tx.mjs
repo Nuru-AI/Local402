@@ -61,7 +61,7 @@ export async function sendTagged(signerLike, { to, data = '0x', value = 0n, gas,
   const hash = await s.wallet.sendTransaction({
     account: s.wallet.account, chain: celo,
     to, data: concat([data, attributionSuffix()]), value, feeCurrency: USDT_FEE_ADAPTER,
-    ...(gas ? { gas } : {}), ...(maxFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas: maxPriorityFeePerGas ?? maxFeePerGas } : {}),
+    ...(gas ? { gas } : {}), ...(maxFeePerGas ? { maxFeePerGas, maxPriorityFeePerGas } : {}),
   });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   if (receipt.status !== 'success') throw new Error(`transaction reverted: ${hash}`);
@@ -70,6 +70,17 @@ export async function sendTagged(signerLike, { to, data = '0x', value = 0n, gas,
 
 export async function balanceOf(token, owner) {
   return publicClient.readContract({ address: token, abi: erc20Abi, functionName: 'balanceOf', args: [owner] });
+}
+
+/** Wait until a balance moves below `than` (a public RPC can answer from a block before our transaction). */
+export async function balanceBelow(token, owner, than, tries = 20) {
+  let b = than;
+  for (let i = 0; i < tries; i++) {
+    b = await balanceOf(token, owner);
+    if (b < than) return b;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return b;
 }
 
 /** Public RPC reads can lag a just-mined block: wait until a balance reaches at least `min`. */
@@ -106,9 +117,14 @@ export async function transferGasInUsdt(signerLike, token, to, amount) {
   const s = toSigner(signerLike);
   const data = concat([encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [to, amount] }), attributionSuffix()]);
   const est = await publicClient.estimateGas({ account: s.address, to: token, data, feeCurrency: USDT_FEE_ADAPTER });
-  const price = BigInt(await publicClient.request({ method: 'eth_gasPrice', params: [USDT_FEE_ADAPTER] }));
-  const gas = (est * 13n) / 10n;
-  const maxFeePerGas = (price * 3n) / 2n;
+  const [price, tip] = (await Promise.all([
+    publicClient.request({ method: 'eth_gasPrice', params: [USDT_FEE_ADAPTER] }),
+    publicClient.request({ method: 'eth_maxPriorityFeePerGas', params: [USDT_FEE_ADAPTER] }),
+  ])).map(BigInt);
+  // Celo debits gas × maxFeePerGas up front and refunds the unused part, so a tight cap leaves less dust.
+  const gas = (est * 11n) / 10n;
+  const maxFeePerGas = (price * 5n) / 4n;
+  const maxPriorityFeePerGas = tip < maxFeePerGas ? tip : maxFeePerGas;
   const maxFeeUsdt = (gas * maxFeePerGas + FEE_ADAPTER_SCALE - 1n) / FEE_ADAPTER_SCALE;
-  return { gas, maxFeePerGas, maxFeeUsdt };
+  return { gas, maxFeePerGas, maxPriorityFeePerGas, maxFeeUsdt };
 }

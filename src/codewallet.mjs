@@ -13,7 +13,7 @@
 import { bytesToHex, hexToBytes, keccak256, parseUnits } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { TOKENS, LOCAL } from './config.mjs';
-import { toSigner, balanceOf, transferTagged, transferGasInUsdt } from './tx.mjs';
+import { toSigner, balanceOf, balanceBelow, transferTagged, transferGasInUsdt } from './tx.mjs';
 import { buy, fundUsdt } from './buyer.mjs';
 import { isSippar } from './sippar.mjs';
 
@@ -131,10 +131,10 @@ export async function sweepCode(code, to) {
   const bal = await balanceOf(TOKENS.USDT.address, s.address);
   if (bal === 0n) throw new Error('this code holds no USD₮');
   // Gas is estimated on a 1-unit transfer: emptying the balance can only cost less.
-  const { gas, maxFeePerGas, maxFeeUsdt } = await transferGasInUsdt(s, TOKENS.USDT.address, to, 1n);
+  const { gas, maxFeePerGas, maxPriorityFeePerGas, maxFeeUsdt } = await transferGasInUsdt(s, TOKENS.USDT.address, to, 1n);
   const amount = bal - maxFeeUsdt;
   if (amount <= 0n) throw new Error(`this code holds ${Number(bal) / 1e6} USD₮, less than the ${Number(maxFeeUsdt) / 1e6} USD₮ gas a transfer can cost`);
-  const sent = await transferTagged(s, TOKENS.USDT.address, to, amount, { gas, maxFeePerGas });
-  const left = await balanceOf(TOKENS.USDT.address, s.address);
+  const sent = await transferTagged(s, TOKENS.USDT.address, to, amount, { gas, maxFeePerGas, maxPriorityFeePerGas });
+  const left = await balanceBelow(TOKENS.USDT.address, s.address, bal);
   return { from: s.address, to, sweptUSDT: Number(amount) / 1e6, gasCapUSDT: Number(maxFeeUsdt) / 1e6, leftUSDT: Number(left) / 1e6, tx: sent.transactionHash };
 }
