@@ -5,8 +5,9 @@
 // 4. POST /call/:serviceId           the gateway pays the service over x402 and returns its answer
 import express from 'express';
 import { decodeEventLog, erc20Abi } from 'viem';
-import { LOCAL, tokenByAddress, ATTRIBUTION_CODE } from './config.mjs';
-import { publicClient, loadAccount } from './chain.mjs';
+import { LOCAL, TOKENS, tokenByAddress, ATTRIBUTION_CODE } from './config.mjs';
+import { publicClient, loadAccount, transferTagged } from './chain.mjs';
+import { domain as channelDomain, types as channelTypes, verifyVoucher, decodeVoucher } from './channel.mjs';
 import { convert } from './textile.mjs';
 import { pay } from './x402.mjs';
 import { services, pricedCatalog, ratesPerUsd } from './catalog.mjs';
@@ -76,11 +77,77 @@ app.post('/deposit', wrap(async (req, res) => {
   });
   res.json({
     credit,
+    channel: txHash,
+    owner: found.from,
     creditedUSDT: Number(fx.bought) / 1e6,
     currency: found.tok.symbol,
     textileTx: fx.txHash,
-    note: 'Keep the credit token: it is shown once.',
+    voucher: { domain: channelDomain(account.address), types: channelTypes, note: 'sign Voucher{channel, cumulative} with the depositing wallet for each call' },
+    note: 'Two ways to spend: a signed cumulative voucher per call on /channel/:channel/call/:service, or the bearer credit token (shown once).',
   });
+}));
+
+// ---- FX channels: signed cumulative vouchers, one Textile fill to open, one to close ----
+
+app.get('/channel/:id', wrap(async (req, res) => {
+  const ch = ledger.channel(req.params.id);
+  if (!ch) return res.status(404).json({ error: 'unknown channel' });
+  const { credit, ...pub } = ch;
+  res.json({ channel: req.params.id, ...pub, remaining: (BigInt(ch.credited) - BigInt(ch.spent)).toString() });
+}));
+
+app.post('/channel/:id/call/:service', wrap(async (req, res) => {
+  const id = req.params.id.toLowerCase();
+  const ch = ledger.channel(id);
+  if (!ch) return res.status(404).json({ error: 'unknown channel' });
+  const svc = (await services()).find((s) => s.id === req.params.service);
+  if (!svc) return res.status(404).json({ error: 'unknown service' });
+  const header = req.headers['x-voucher'];
+  const expected = (BigInt(ch.spent) + BigInt(svc.atomic)).toString();
+  if (!header) {
+    // A 402 that names the exact voucher to sign, like an x402 challenge.
+    return res.status(402).json({ error: 'voucher required', channel: id, cumulative: expected, priceAtomic: svc.atomic, domain: channelDomain(account.address), types: { Voucher: channelTypes.Voucher } });
+  }
+  const v = decodeVoucher(header);
+  const ok = await verifyVoucher({ gateway: account.address, owner: ch.owner, channel: id, cumulative: v.cumulative, signature: v.signature });
+  if (!ok) return res.status(401).json({ error: 'voucher not signed by the channel owner' });
+  ledger.draw(id, v.cumulative, svc.atomic, { service: svc.id, usd: svc.usd });
+  try {
+    const r = await pay(account, svc.url, { method: svc.method, body: req.body, symbol: 'USDT', maxAtomic: svc.atomic });
+    if (!r.paid) throw Object.assign(new Error(`upstream answered ${r.status}: ${(r.body || '').slice(0, 300)}`), { status: 502 });
+    let body;
+    try { body = JSON.parse(r.body); } catch { body = r.body; }
+    res.json({ service: svc.id, channel: id, cumulative: v.cumulative, paidUSDT: Number(r.priceAtomic) / 1e6, settlement: r.receipt?.transaction || r.receipt, result: body });
+  } catch (e) {
+    ledger.undraw(id, svc.atomic); // the voucher's total is not spent if the service failed
+    throw e;
+  }
+}));
+
+app.post('/channel/:id/close', wrap(async (req, res) => {
+  const id = req.params.id.toLowerCase();
+  const ch = ledger.channel(id);
+  if (!ch) return res.status(404).json({ error: 'unknown channel' });
+  const { cumulative, signature } = req.body || {};
+  if (String(cumulative) !== ch.spent) return res.status(409).json({ error: `close must carry cumulative ${ch.spent}` });
+  const ok = await verifyVoucher({ gateway: account.address, owner: ch.owner, channel: id, cumulative, signature, kind: 'Close' });
+  if (!ok) return res.status(401).json({ error: 'close not signed by the channel owner' });
+  const remaining = BigInt(ch.credited) - BigInt(ch.spent);
+  let refund = { remainingUSDT: Number(remaining) / 1e6 };
+  if (remaining > 0n) {
+    // Send the rest back in the owner's own currency when Textile can fill it; else in USD₮.
+    try {
+      if (remaining < 1_000_000n) throw new Error('below Textile minimum');
+      const fx = await convert(account, { from: 'USDT', to: ch.currency, sellAmount: remaining });
+      const sent = await transferTagged(account, TOKENS[ch.currency].address, ch.owner, BigInt(fx.bought));
+      refund = { ...refund, currency: ch.currency, amount: fx.bought, textileTx: fx.txHash, refundTx: sent.transactionHash };
+    } catch (e) {
+      const sent = await transferTagged(account, TOKENS.USDT.address, ch.owner, remaining);
+      refund = { ...refund, currency: 'USDT', amount: remaining.toString(), refundTx: sent.transactionHash, why: e.message };
+    }
+  }
+  ledger.closeChannel(id, { refund });
+  res.json({ channel: id, spentUSDT: Number(ch.spent) / 1e6, calls: ch.calls, refund });
 }));
 
 app.get('/balance', wrap(async (req, res) => {

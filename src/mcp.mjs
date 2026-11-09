@@ -7,7 +7,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { parseUnits, formatUnits } from 'viem';
+import fs from 'node:fs';
+import path from 'node:path';
+import { parseUnits, formatUnits, keccak256, toHex } from 'viem';
+import { signVoucher, domain as channelDomain } from './channel.mjs';
 import { TOKENS, LOCAL } from './config.mjs';
 import { loadAccount, balanceOf, transferTagged } from './chain.mjs';
 import { convert, convertExactOut, preview } from './textile.mjs';
@@ -99,6 +102,75 @@ server.tool(
     const out = { address: account.address };
     for (const sym of ['USDT', 'USDC', ...LOCAL]) out[sym] = formatUnits(await balanceOf(TOKENS[sym].address, account.address), TOKENS[sym].decimals);
     return text(out);
+  },
+);
+
+// ---- Payee channels: pay a person or agent many small amounts in their currency, settle once ----
+// Open buys the whole budget on Textile in one fill. Each payment is a signed cumulative voucher the
+// payee can verify (no transaction, no FX). Close sends the total in one transfer; any unspent budget
+// stays in the wallet for the next channel.
+const CH_FILE = process.env.PAYEE_CHANNELS_FILE || 'data/payee-channels.json';
+const loadCh = () => { try { return JSON.parse(fs.readFileSync(CH_FILE, 'utf8')); } catch { return {}; } };
+const saveCh = (db) => { fs.mkdirSync(path.dirname(CH_FILE), { recursive: true }); fs.writeFileSync(CH_FILE, JSON.stringify(db, null, 2)); };
+
+server.tool(
+  'open_payee_channel',
+  'Open a channel to pay a person or agent in their own currency many times: buys the whole budget (e.g. 3000 wARS) on Textile FX in one fill, then each payment is an off-chain signed voucher. Minimum about $1.',
+  {
+    to: z.string().regex(/^0x[0-9a-fA-F]{40}$/).describe('payee wallet on Celo'),
+    currency: z.enum(LOCAL),
+    budget: z.string().describe('budget in the local currency, e.g. "3000"'),
+    confirmUsdMax: z.number().describe('the most USD₮ the user agreed to spend on the budget'),
+  },
+  async ({ to, currency, budget, confirmUsdMax }) => {
+    const t = TOKENS[currency];
+    const buyAmount = parseUnits(budget, t.decimals);
+    const p = await preview({ sellToken: TOKENS.USDT.address, buyToken: t.address, buyAmount: buyAmount.toString() });
+    const usd = Number(p.takerPays || p.sellAmount || 0) / 1e6;
+    if (p.status !== 'preview' || usd > confirmUsdMax) return text(`Refused: ${p.status !== 'preview' ? 'no Textile price' : `about ${usd.toFixed(4)} USD₮ needed, above ${confirmUsdMax}`}.`);
+    const fx = await convertExactOut(account, { from: 'USDT', to: currency, buyAmount });
+    const id = keccak256(toHex(`${to}:${currency}:${Date.now()}:${fx.txHash}`));
+    const db = loadCh();
+    db[id] = { to, currency, budget: buyAmount.toString(), cumulative: '0', vouchers: [], state: 'open', openTextileTx: fx.txHash, costUSDT: fx.sold };
+    saveCh(db);
+    return text({ channel: id, payee: to, budget: `${budget} ${currency}`, costUSDT: Number(fx.sold) / 1e6, textileTx: fx.txHash });
+  },
+);
+
+server.tool(
+  'channel_pay',
+  'Pay the payee of an open channel an amount in its currency. Off-chain: signs a cumulative voucher the payee can verify against this wallet; no transaction until close.',
+  { channel: z.string(), amount: z.string().describe('amount in the channel currency, e.g. "250"'), memo: z.string().optional() },
+  async ({ channel, amount, memo }) => {
+    const db = loadCh();
+    const ch = db[channel];
+    if (!ch || ch.state !== 'open') return text('No open channel with that id.');
+    const add = parseUnits(amount, TOKENS[ch.currency].decimals);
+    const cumulative = BigInt(ch.cumulative) + add;
+    if (cumulative > BigInt(ch.budget)) return text(`Refused: that would exceed the channel budget (${formatUnits(BigInt(ch.budget), TOKENS[ch.currency].decimals)} ${ch.currency}).`);
+    const signature = await signVoucher(account, ch.to, channel, cumulative);
+    ch.cumulative = cumulative.toString();
+    ch.vouchers.push({ amount: add.toString(), cumulative: ch.cumulative, memo: memo || '', signature, at: new Date().toISOString() });
+    saveCh(db);
+    return text({ channel, paid: `${amount} ${ch.currency}`, owedSoFar: `${formatUnits(cumulative, TOKENS[ch.currency].decimals)} ${ch.currency}`, voucher: { domain: channelDomain(ch.to), cumulative: ch.cumulative, signature } });
+  },
+);
+
+server.tool(
+  'close_payee_channel',
+  'Settle a payee channel: one on-chain transfer of everything the vouchers promised. Unspent budget stays in the wallet.',
+  { channel: z.string() },
+  async ({ channel }) => {
+    const db = loadCh();
+    const ch = db[channel];
+    if (!ch || ch.state !== 'open') return text('No open channel with that id.');
+    const owed = BigInt(ch.cumulative);
+    let settleTx = null;
+    if (owed > 0n) settleTx = (await transferTagged(account, TOKENS[ch.currency].address, ch.to, owed)).transactionHash;
+    Object.assign(ch, { state: 'closed', settleTx, closedAt: new Date().toISOString() });
+    saveCh(db);
+    const d = TOKENS[ch.currency].decimals;
+    return text({ channel, payments: ch.vouchers.length, settled: `${formatUnits(owed, d)} ${ch.currency}`, settleTx, unspentKept: `${formatUnits(BigInt(ch.budget) - owed, d)} ${ch.currency}` });
   },
 );
 

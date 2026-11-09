@@ -44,6 +44,34 @@ Any x402 seller on Celo can be added.
 Built for the Celo **Agents on Open Rails** hackathon (Stable Agents: Open Corridors · Textile FX, and
 Stable Agents: LatAm).
 
+## FX channels: Textile's minimum as a channel open
+
+A Textile conversion has a floor (about $1) and a fixed cost (spread, fee, gas). Paying for a $0.005
+call through its own conversion would be absurd. So Local402 treats one conversion as a **channel open**,
+the way an MPP session or an x402 batch-settlement escrow does:
+
+- **Open** — one Textile fill turns the buyer's pesos or naira into a USD₮ balance (≥ $1).
+- **Draw** — each call carries an EIP-712 **cumulative voucher** signed by the buyer's wallet
+  (`Voucher{channel, cumulative}`). No transaction, no FX. Calling without one returns a 402 that names
+  the exact cumulative to sign. The gateway advances from its own record, never the sender's.
+- **Close** — a signed `Close{channel, cumulative}`; the unspent balance goes back in the buyer's own
+  currency through one more Textile fill (or in USD₮ if it is under Textile's minimum).
+
+The same shape runs the other way for an AI assistant paying people: `open_payee_channel` buys the whole
+budget (say 1,800 wARS) in one fill, `channel_pay` signs a voucher per payment that the payee can
+verify, and `close_payee_channel` settles everything in one transfer.
+
+Two fills and one settlement for any number of calls: fewer, larger Textile trades, one spread instead
+of many. Textile's 60-second firm quotes and a maker that can fail at simulation are handled too: the
+client re-quotes, and waits out its own reservation using Textile's `retryAfterMs`.
+
+| Endpoint / tool | |
+|---|---|
+| `POST /deposit {txHash}` | opens the channel; returns its id (the deposit tx), owner, and the EIP-712 domain |
+| `POST /channel/:id/call/:service` | `X-Voucher: base64({cumulative, signature})`; 402 without one |
+| `POST /channel/:id/close {cumulative, signature}` | refund the rest in the owner's currency |
+| MCP `open_payee_channel` · `channel_pay` · `close_payee_channel` | the same, paying a person or agent |
+
 ## How it works
 
 ```
@@ -124,8 +152,20 @@ Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542
 | `pay_in_local_currency`: Textile buys exactly 1,700 wARS for 1.024627 USD₮ | [`0x536796db…`](https://celoscan.io/tx/0x536796db3cb03a83bd7983bdd2cd32c6df68fb08235a762719a6c46a4b71c077) |
 | … and sends the 1,700 wARS to the recipient (our demo wallet, standing in for a freelancer) | [`0x8120dcf8…`](https://celoscan.io/tx/0x8120dcf883bc0b7ea018b1198bf5a7540a4015c7a1c997195072ac33349ea806) |
 
-Totals: seven Textile fills (about 9.1 USD₮ quoted and filled, both directions), eight paid x402 calls
-into services we do not control. Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
+| **FX channel — buyer side (open, 4 voucher draws, close)** | |
+| Buyer gets 2,157 wARS for 1.30 USD₮ (now holds 3,855.75 wARS) | [`0xdb8abd9f…`](https://celoscan.io/tx/0xdb8abd9f96481673d6a1b73f032d6e2818d0d72378afd51dfb00ec4d41f067c2) |
+| Open: buyer pays the gateway 3,855.75 wARS | [`0xa9cfe350…`](https://celoscan.io/tx/0xa9cfe350cfeb9c755087356d92f448f11bb1576703c794acbc326cf253e0e805) |
+| Open: one Textile fill → 2.323768 USD₮ channel balance | [`0x8d228767…`](https://celoscan.io/tx/0x8d228767ead1a5472b4f42ced1c9d9be93742224bfff5079cccd8458ee9e9131) |
+| Draws (signed vouchers, cumulative 5000 → 10000 → 20000 → 25000): X, Reddit, Chainstack, X — x402 settlements | [`0xeebde8c0…`](https://celoscan.io/tx/0xeebde8c089ebd82baeb260dbdb9d7dbef7e799fd575fe706f93c07bc9a85fa3f) · [`0x420c4512…`](https://celoscan.io/tx/0x420c4512a414b55d49a6c6478e8416cffe3ca48fc46f9e4317a385e303d0c067) · [`0xa027a4c0…`](https://celoscan.io/tx/0xa027a4c0bb6767cc66b9d7de2ca3b01d6b5c64ff7f3c34a5878b809df93577d0) · [`0xcf9b6aec…`](https://celoscan.io/tx/0xcf9b6aecc45d241d6ab3bdd3db2b83d0867d5fe817a9a7106ac4248a836d9d1e) |
+| Close: one Textile fill, 2.298768 USD₮ → 3,811.98 wARS | [`0x9ed9ce87…`](https://celoscan.io/tx/0x9ed9ce87fdbb57bfae55ce327f84d1dc44e31ea60433b3099618f9635b0f9ebb) |
+| Close: refund 3,811.98 wARS to the buyer | [`0x7585cbd1…`](https://celoscan.io/tx/0x7585cbd1dc0fdb015c4d5c24aefc50a3146c20d31f0559f746b5532532300ec6) |
+| **Payee channel — an AI assistant pays a freelancer (MCP)** | |
+| `open_payee_channel`: one Textile fill buys exactly 1,800 wARS for 1.085487 USD₮ | [`0x6178ad6c…`](https://celoscan.io/tx/0x6178ad6c80070c514c4f4b6e8f7f3f60050de5241994aecd59dbde95541d75e5) |
+| `channel_pay` ×3 (500, 400, 300 wARS): signed vouchers, no transaction | — |
+| `close_payee_channel`: one transfer settles 1,200 wARS (600 unspent kept) | [`0xf030201c…`](https://celoscan.io/tx/0xf030201c593662ec150a87a50300f397d37e11fab584c2ccccdd6b7588d18277) |
+
+Totals: eleven Textile fills (about 16 USD₮ quoted and filled, both directions), twelve paid x402
+calls into services we do not control. Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
 paid x402 calls into services we do not control. Textile's 2 bps fee went to its fee recipient on each fill.
 
 ## Limits, plainly

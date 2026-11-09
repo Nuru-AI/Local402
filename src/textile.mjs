@@ -54,7 +54,7 @@ export async function firmQuote(account, { sellToken, buyToken, sellAmount, buyA
     const d = json?.error?.details;
     if (status === 401 && d?.reason === 'proof_of_control_required') { proof = await takerProof(account); continue; }
     // A live earlier quote can still hold these funds; Textile says when they free up. Wait it out once.
-    if (status === 400 && d?.reason === 'insufficient_funds' && d?.committed && d?.retryAfterMs <= 120_000) {
+    if (status === 400 && d?.reason === 'insufficient_funds' && d?.committed && d?.retryAfterMs <= 240_000) {
       await new Promise((r) => setTimeout(r, d.retryAfterMs + 2_000));
       proof = undefined;
       continue;
@@ -88,18 +88,32 @@ export async function execute(account, q) {
   return { txHash: receipt.transactionHash, sold: quote.takerPays, bought: quote.buyAmount, fee: quote.feeAmount, rfqId };
 }
 
-/** Convert an exact amount of one token into another on Textile (exact input). */
-export async function convert(account, { from, to, sellAmount }) {
-  const q = await firmQuote(account, { sellToken: TOKENS[from].address, buyToken: TOKENS[to].address, sellAmount: sellAmount.toString() });
-  if (q.status !== 'quoted') throw new Error(`Textile: no quote (${q.reason}); available ${q.availableSellAmount ?? 'unknown'}`);
+// A firm quote can fail at simulation when a maker's own funds moved after quoting
+// (TRANSFER_FROM_FAILED). Nothing is broadcast; ask again (firmQuote waits out our reservation).
+async function withRequote(fn, attempts = 3) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn(); } catch (e) {
+      last = e;
+      if (!/TRANSFER_FROM_FAILED|no quote \(no_valid_quote\)/.test(e.message)) throw e;
+    }
+  }
+  throw last;
+}
+
+async function quoteAndExecute(account, from, to, amounts) {
+  const q = await firmQuote(account, { sellToken: TOKENS[from].address, buyToken: TOKENS[to].address, ...amounts });
+  if (q.status !== 'quoted') throw new Error(`Textile: no quote (${q.reason}); available ${q.availableBuyAmount ?? q.availableSellAmount ?? 'unknown'}`);
   q.sellToken = TOKENS[from].address;
   return execute(account, q);
 }
 
+/** Convert an exact amount of one token into another on Textile (exact input). */
+export async function convert(account, { from, to, sellAmount }) {
+  return withRequote(() => quoteAndExecute(account, from, to, { sellAmount: sellAmount.toString() }));
+}
+
 /** Receive exactly `buyAmount` of `to`, paying whatever `from` the makers ask (exact output). */
 export async function convertExactOut(account, { from, to, buyAmount }) {
-  const q = await firmQuote(account, { sellToken: TOKENS[from].address, buyToken: TOKENS[to].address, buyAmount: buyAmount.toString() });
-  if (q.status !== 'quoted') throw new Error(`Textile: no quote (${q.reason}); available ${q.availableBuyAmount ?? q.availableSellAmount ?? 'unknown'}`);
-  q.sellToken = TOKENS[from].address;
-  return execute(account, q);
+  return withRequote(() => quoteAndExecute(account, from, to, { buyAmount: buyAmount.toString() }));
 }

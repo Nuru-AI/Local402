@@ -1,7 +1,7 @@
 # Local402 — Agents on Open Rails submission
 
 **Project:** Local402
-**Tagline:** Agents that pay like a local: hire services and people on Celo in pesos, reais, naira or dollars, with Textile FX in between.
+**Tagline:** Agents that pay like a local: hire services and people on Celo in pesos, reais, naira or dollars, through FX channels on Textile.
 **Tracks:** Stable Agents: Open Corridors · Textile FX (primary) · Stable Agents: LatAm (secondary)
 **Repo:** https://github.com/Nuru-AI/Local402 (MIT)
 **Network:** Celo mainnet (42220)
@@ -33,6 +33,17 @@ the two sides on Celo, with a firm Textile FX quote in every crossing. It works 
 Every conversion is a Textile fill against independent market makers; every service call is a paid call
 into a service we do not control. Gas is paid in USD₮ through Celo fee abstraction.
 
+## The strategy: FX channels
+
+Textile's minimum (about $1) and fixed cost per conversion make per-call FX absurd for $0.005 calls. Local402
+turns that minimum into a channel open, the design we know from MPP sessions and x402 batch settlement:
+**one Textile fill opens a channel, each call draws on it with an EIP-712 cumulative voucher signed by the
+payer (no transaction, no FX), and one fill closes it, returning the rest in the payer's own currency.**
+The same shape runs for an assistant paying a freelancer: one fill buys the budget, payments are vouchers
+the payee can verify, one transfer settles. Fewer, larger Textile trades; one spread instead of many.
+The client also re-quotes when a maker fails at simulation and waits out its own reservation using
+Textile's `retryAfterMs`.
+
 ## Proof on mainnet
 
 See the README's "Proof on Celo mainnet" section for every transaction hash: Textile fills in both directions (USD₮→local
@@ -48,8 +59,9 @@ settlements for each service call.
 - wARS and cNGN converted cleanly. Firm quotes for USD₮→wBRL and USD₮→wCOP failed the pre-send
   simulation with `TRANSFER_FROM_FAILED` (nothing was broadcast) while Textile's wBRL buy-side depth fell
   from about 3,700 to about 25 USD₮; the gateway cancels such a quote and frees the reservation.
-- Totals: seven Textile fills (about 9.1 USD₮ quoted and filled, both directions, two market makers) and
-  eight paid x402 calls (X and Reddit search, Chainstack RPC, Cencori inference).
+- Totals: eleven Textile fills (about 16 USD₮ quoted and filled, both directions) and twelve paid x402
+  calls (X and Reddit search, Chainstack RPC, Cencori inference); one buyer FX channel (open, four voucher
+  draws, close with a wARS refund) and one payee channel (three voucher payments, one settlement).
 - Funding arrived on Base and was bridged to Celo through Relay with a gasless permit.
 
 ## How the agent helped

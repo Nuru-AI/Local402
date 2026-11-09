@@ -1,6 +1,6 @@
 {
   "name": "local402",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Pay for any x402 agent service in your own currency: local stablecoins on Celo, converted on Textile FX.",
   "main": "src/server.mjs",
   "scripts": {
@@ -9,7 +9,9 @@
     "demo": "node scripts/demo.mjs",
     "prices": "node scripts/prices.mjs",
     "mcp": "node src/mcp.mjs",
-    "mcp-demo": "node scripts/mcp-demo.mjs"
+    "mcp-demo": "node scripts/mcp-demo.mjs",
+    "channel-demo": "node scripts/channel-demo.mjs",
+    "payee-demo": "node scripts/payee-demo.mjs"
   },
   "license": "MIT",
   "dependencies": {
