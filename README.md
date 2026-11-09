@@ -50,9 +50,10 @@ Any x402 seller on Celo can be added.
 
 | Track | Where it is met |
 |---|---|
-| Open Corridors · Textile FX | Thirteen Textile fills in both directions (about 20 USD₮). FX channels turn Textile's ~$1 minimum into one fill that serves many cent-sized calls; failed maker quotes are re-quoted and reservations waited out. |
+| Open Corridors · Textile FX | Fourteen Textile fills in both directions (about 21 USD₮). FX channels turn Textile's ~$1 minimum into one fill that serves many cent-sized calls; failed maker quotes are re-quoted and reservations waited out. |
 | Stable Agents: LatAm | Ripio's wARS in and out: peso purchases, a peso FX channel with a refund in pesos, Unlock codes paid in pesos, and an assistant paying a freelancer exactly 1,700 and 1,200 wARS. |
-| Build with buy | Fifteen paid x402 calls from the tagged agent wallet into buy's sellers we do not control: X, Reddit, TikTok via Apify, Chainstack, Cencori. |
+| Open Corridors · USA₮ with x402 | The agent buys USA₮ on Textile with USD₮, then pays a buy seller in USA₮ over x402 (`exact`, EIP-3009), settled by buy's own x402 processor. |
+| Build with buy | Sixteen paid x402 calls (in USD₮, and one in USA₮) from the tagged agent wallet into buy's sellers we do not control: X, Reddit, TikTok via Apify, Chainstack, Cencori. |
 | On every track | ERC-8004 agent #10063, Self Agent ID #198 on the agent wallet, the attribution tag on every transaction we send. |
 
 Honest gap: every payer so far is ours (the demo buyer and the Try it wallet); the counterparties are
@@ -243,13 +244,16 @@ Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542
 | USDC float refilled: one Textile fill, 1.051092 USD₮ → 1.05 USDC | [`0x8b1b9c34…`](https://celoscan.io/tx/0x8b1b9c34179b0475ff4d1790f781929bcd6a74822d49a1abf601034d47e9310c) |
 | `sippar.reddit-social`: one tagged 0.02 USDC transfer to Sippar's pay-to, presented as `X-PAYMENT: eip155:42220:<tx>` | [`0x90caffd1…`](https://celoscan.io/tx/0x90caffd1da938f6f457c1a3f40b9335435d69d585a0b7a0b8a61b86eedc686ee) |
 | `sippar.news-search`: one tagged 0.01 USDC transfer, answered | [`0x88397bc4…`](https://celoscan.io/tx/0x88397bc4202383e34e37fa9e42b8d186f8df469acb1c980b66135a362409c704) |
+| **USA₮ over x402 (`scripts/usat-demo.mjs`)** | |
+| Agent buys 1.049318 USA₮ for 1.05 USD₮ (Textile fill, rfq `rfq_JS4-5ZMlT3ywSnxb`) | [`0x42e1e31b…`](https://celoscan.io/tx/0x42e1e31b60f19183e14b37f3e5cb8ae0f0720d6b4405ca4f935773cfed7ab96d) |
+| x402: X post search, 0.005 USA₮ (`exact`, EIP-3009 on USA₮ `0xD2ab3C9A…`) to buy's pay-to `0x20faAca5…`; settled by buy's own x402 processor (buy's gateway), not Celo's hosted processor at x402.celo.org | [`0x5397effb…`](https://celoscan.io/tx/0x5397effbe0a185a205bd2fdda2cf84ef5f2a2f815bda6f513c5c6890dfe43ef0) |
 
 Sippar answered the Reddit call 8 seconds after payment, but the client's connection timed out before the
 answer arrived. Presenting the same transaction once more returned that answer at no charge, marked
 `redelivered`, so a timeout costs neither a second payment nor the answer.
 
-Totals: thirteen Textile fills (about 20 USD₮ quoted and filled, both directions), fifteen paid x402
-calls into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori), and two paid
+Totals: fourteen Textile fills (about 21 USD₮ quoted and filled, both directions), sixteen paid x402
+calls (one of them in USA₮) into services we do not control (X, Reddit, TikTok via Apify, Chainstack, Cencori), and two paid
 calls into Sippar's shop over its `celo-x402` rail. Earlier subtotal for the HTTP gateway alone: six Textile fills (about 8.1 USD₮ quoted and filled, both directions, two market makers), seven
 paid x402 calls into services we do not control. Textile's 2 bps fee went to its fee recipient on each fill.
 
