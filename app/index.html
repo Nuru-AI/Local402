@@ -47,6 +47,9 @@
     <a class="btn ghost" href="https://8004scan.io/agents/celo/10063">Agent #10063 on 8004scan</a>
     <a class="btn ghost" href="https://celoscan.io/address/0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B">Agent wallet on Celoscan</a>
   </div>
+  <p class="sub" style="margin-top:12px">Human-backed: the agent wallet holds Self Agent ID #198, a passport zero-knowledge proof that a real, unique person stands behind it (<span id="self-check">checking on-chain…</span>). The people it serves never have to show an ID.</p>
+  <div>
+  </div>
 
   <div class="grid" id="stats">
     <div class="stat"><b id="s-fills">…</b><small>Textile FX fills</small></div>
@@ -106,7 +109,16 @@ async function load() {
   const [gTx, bTx, gTr] = await Promise.all([
     getJSON(`${API}/addresses/${GATEWAY}/transactions?filter=from`),
     getJSON(`${API}/addresses/${BUYER}/transactions?filter=from`),
-    getJSON(`${API}/addresses/${GATEWAY}/token-transfers?type=ERC-20`),
+    (async () => {
+      // Follow pages so every transfer is counted.
+      let url = `${API}/addresses/${GATEWAY}/token-transfers?type=ERC-20`, items = [];
+      for (let i = 0; i < 8 && url; i++) {
+        const j = await getJSON(url);
+        items = items.concat(j.items || []);
+        url = j.next_page_params ? `${API}/addresses/${GATEWAY}/token-transfers?type=ERC-20&` + new URLSearchParams(j.next_page_params) : null;
+      }
+      return { items };
+    })(),
   ]);
   const sent = [...(gTx.items || []), ...(bTx.items || [])];
   const rows = [];
@@ -136,7 +148,7 @@ async function load() {
   }
   rows.sort((a, b) => (a.ts < b.ts ? 1 : -1));
   document.getElementById('s-fills').textContent = fills;
-  document.getElementById('s-calls').textContent = calls + (gTr.next_page_params ? '+' : '');
+  document.getElementById('s-calls').textContent = calls;
   document.getElementById('s-tagged').textContent = tagged;
   document.getElementById('s-local').textContent = local;
   document.getElementById('rows').innerHTML = rows.map((r) => `<tr>
@@ -147,6 +159,14 @@ async function load() {
     <td class="mono"><a href="https://celoscan.io/tx/${r.hash}" target="_blank" rel="noopener">${short(r.hash)}</a></td>
   </tr>`).join('');
 }
+(async () => {
+  // ownerOf(198) on the Self Agent ID registry, read from Celo in the browser.
+  try {
+    const r = await fetch('https://forno.celo.org', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: '0xaC3DF9ABf80d0F5c020C06B04Cced27763355944', data: '0x6352211e' + (198).toString(16).padStart(64, '0') }, 'latest'] }) });
+    const owner = '0x' + (await r.json()).result.slice(-40);
+    document.getElementById('self-check').textContent = owner.toLowerCase() === GATEWAY ? 'verified: owned by the agent wallet' : 'owner ' + owner;
+  } catch { document.getElementById('self-check').textContent = 'could not read right now'; }
+})();
 load().catch((e) => { document.getElementById('rows').innerHTML = `<tr><td colspan="5">Could not read Celo right now (${e.message}). Try again in a moment.</td></tr>`; });
 </script>
 </body>

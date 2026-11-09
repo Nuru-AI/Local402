@@ -109,7 +109,10 @@ buyer (wARS) ──transfer──▶ gateway ──Textile RFQ: wARS→USD₮─
   enrolment (`@celo/attribution-tags`); the code refuses to send an untagged transaction. x402
   settlements are submitted by the seller's facilitator and cannot carry a tag yet.
 - **Identity:** the gateway wallet is registered in the ERC-8004 Identity Registry on Celo
-  (`agent.json`, `scripts/register-8004.mjs`).
+  (`agent.json`, `scripts/register-8004.mjs`) and holds a **Self Agent ID** (#198): a soulbound
+  proof-of-human bound to a passport zero-knowledge proof, so anyone can check that a real, unique person
+  stands behind the agent. No name, nationality or age was disclosed. Self sits on the agent side only:
+  the people Local402 serves never have to show an ID.
 
 ## Run it
 
@@ -143,6 +146,7 @@ Every transaction both wallets sent carries the ERC-8021 code `celo_b049a252d542
 
 | Step | Transaction |
 |---|---|
+| Self Agent ID #198, owned by the agent wallet (registry `0xaC3DF9AB…`, `agentKeyToAgentId` → 198, `ownerOf(198)` → agent wallet) | [registry](https://celoscan.io/address/0xaC3DF9ABf80d0F5c020C06B04Cced27763355944) |
 | ERC-8004 registration (agent #10063) | [`0x137b55e4…`](https://celoscan.io/tx/0x137b55e4d9d0c41d7485f1f935cf4498ebaca195b25e52a91290adf06e6036e1) |
 | **Purchase 1 — Argentine pesos** | |
 | Buyer gets 2,488.56 wARS for 1.50 USD₮ (Textile fill) | [`0x3c01212d…`](https://celoscan.io/tx/0x3c01212dc8f6bba0cb4bb977c63c7608f33d59134d16bcd22d9e4a39468481c7) |
