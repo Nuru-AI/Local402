@@ -63,7 +63,7 @@ app.post('/deposit', wrap(async (req, res) => {
       }
     } catch { /* not a Transfer */ }
   }
-  if (!found) return res.status(400).json({ error: `no ${LOCAL.join('/')} transfer to ${account.address} in that transaction` });
+  if (!found || found.amount === 0n) return res.status(400).json({ error: `no ${LOCAL.join('/')} transfer to ${account.address} in that transaction` });
   const fx = await convert(account, { from: found.tok.symbol, to: 'USDT', sellAmount: found.amount });
   const credit = ledger.recordDeposit(txHash, {
     from: found.from,

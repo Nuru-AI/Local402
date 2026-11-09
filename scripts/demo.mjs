@@ -31,13 +31,27 @@ if (usdt < need && process.env.FUND_FROM_GATEWAY === '1') {
 }
 log('buyer USD₮', Number(usdt) / 1e6);
 
-// 1. Buyer acquires local currency on Textile (one firm-quote fill).
-const spend = parseUnits(USD, 6);
-const toLocal = await convert(buyer, { from: 'USDT', to: CURRENCY, sellAmount: spend });
-log(`Textile fill: ${USD} USD₮ -> ${CURRENCY}`, toLocal.txHash);
+// Public RPC reads can lag a just-mined block; wait until a balance reaches what we expect.
+async function balanceAtLeast(token, owner, min) {
+  for (let i = 0; i < 20; i++) {
+    const b = await balanceOf(token, owner);
+    if (b >= min) return b;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  return balanceOf(token, owner);
+}
+
+// 1. Buyer acquires local currency on Textile (one firm-quote fill), unless it already holds some.
+let local = await balanceOf(TOKENS[CURRENCY].address, buyer.address);
+if (local === 0n || process.env.ACQUIRE === '1') {
+  const spend = parseUnits(USD, 6);
+  const toLocal = await convert(buyer, { from: 'USDT', to: CURRENCY, sellAmount: spend });
+  log(`Textile fill: ${USD} USD₮ -> ${CURRENCY}`, toLocal.txHash);
+  local = await balanceAtLeast(TOKENS[CURRENCY].address, buyer.address, BigInt(toLocal.bought));
+}
+if (local === 0n) throw new Error(`buyer holds no ${CURRENCY}`);
 
 // 2. Buyer pays the gateway in local currency (tagged transfer).
-const local = await balanceOf(TOKENS[CURRENCY].address, buyer.address);
 const pay = await transferTagged(buyer, TOKENS[CURRENCY].address, info.gateway, local);
 log(`paid gateway ${Number(local) / 10 ** TOKENS[CURRENCY].decimals} ${CURRENCY}`, pay.transactionHash);
 
@@ -57,7 +71,8 @@ for (const [id, body] of calls) {
   const r = await (await fetch(`${GATEWAY_URL}/call/${id}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${dep.credit}` }, body: JSON.stringify(body),
   })).json();
-  log(`call ${id}`, r.error ? `ERROR ${r.error}` : `paid ${r.paidUSDT} USD₮ to ${r.payTo} · settlement ${JSON.stringify(r.settlement)?.slice(0, 140)}`);
+  log(`call ${id}`, r.error ? `ERROR ${r.error}` : `paid ${r.paidUSDT} USD₮ to ${r.payTo} · settlement ${r.settlement?.transaction || JSON.stringify(r.settlement)}`);
+  if (!r.error) log('  answer:', JSON.stringify(r.result).slice(0, 220));
 }
 const bal = await (await fetch(`${GATEWAY_URL}/balance`, { headers: { Authorization: `Bearer ${dep.credit}` } })).json();
 log('remaining credit', bal);

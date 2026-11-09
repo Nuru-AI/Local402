@@ -1,7 +1,7 @@
 // Textile FX taker client: preview, firm quote (keyless, proof of control), execute, report.
 // Docs: https://docs.textilecredit.com/api/v2/rfq
 import crypto from 'node:crypto';
-import { toHex } from 'viem';
+import { toHex, decodeFunctionData, erc20Abi } from 'viem';
 import { TEXTILE_API, CHAIN_ID, TOKENS } from './config.mjs';
 import { ensureAllowance, sendTagged } from './chain.mjs';
 
@@ -58,11 +58,21 @@ export async function firmQuote(account, { sellToken, buyToken, sellAmount, buyA
 export async function execute(account, q) {
   const { rfqId, claimToken, quote, transactions } = q;
   const sellToken = transactions.approval?.to || q.sellToken;
-  const spender = quote.spender || quote.reactor;
+  // Approve exactly the address Textile's own approval names (reactor, or a vault's order executor).
+  let spender = quote.spender || quote.reactor;
+  if (transactions.approval?.data) {
+    try { spender = decodeFunctionData({ abi: erc20Abi, data: transactions.approval.data }).args[0]; } catch { /* keep default */ }
+  }
   await ensureAllowance(account, sellToken, spender, BigInt(quote.takerPays));
   if (Date.now() >= Date.parse(quote.expiresAt)) throw new Error('quote expired during approval; request a new one');
   // Keyless calls get no Textile tag, so the bytes are ours to suffix (one ERC-8021 tag, ours).
-  const receipt = await sendTagged(account, { to: transactions.swap.to, data: transactions.swap.data, value: BigInt(transactions.swap.value || 0) });
+  let receipt;
+  try {
+    receipt = await sendTagged(account, { to: transactions.swap.to, data: transactions.swap.data, value: BigInt(transactions.swap.value || 0) });
+  } catch (e) {
+    await post(`/rfq/${rfqId}/cancel`, {}, { 'X-Rfq-Claim': claimToken }).catch(() => {});
+    throw new Error(`Textile swap failed (${(e.shortMessage || e.message).slice(0, 160)}); rfq ${rfqId}`);
+  }
   await post(`/rfq/${rfqId}/submit`, { txHash: receipt.transactionHash }, { 'X-Rfq-Claim': claimToken }).catch(() => {});
   return { txHash: receipt.transactionHash, sold: quote.takerPays, bought: quote.buyAmount, fee: quote.feeAmount, rfqId };
 }
