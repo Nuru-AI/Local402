@@ -28,6 +28,26 @@ The services come from two outside shops, both paid per call on Celo:
 
 Any x402 seller on Celo can be added.
 
+## For judges: try it in 30 seconds
+
+1. Open **https://sippar.network/local402/** and use **Try it**: pick X, Reddit, an AI answer (Cencori),
+   Celo RPC (Chainstack) or flights, and ask. The answer comes back paid live on Celo mainnet over x402,
+   with its Celoscan link, and the payment then appears in the page's live activity. It pays from a small
+   demo wallet that is ours (3 tries per visitor per day).
+2. Everything else on that page is read from Celo by your browser: Textile fills, paid calls, the
+   attribution tag decoded from each transaction, and the Self Agent ID check.
+3. Every transaction is linked below in [Proof on Celo mainnet](#proof-on-celo-mainnet-2026-11-09).
+
+| Track | Where it is met |
+|---|---|
+| Open Corridors · Textile FX | Thirteen Textile fills in both directions (about 20 USD₮). FX channels turn Textile's ~$1 minimum into one fill that serves many cent-sized calls; failed maker quotes are re-quoted and reservations waited out. |
+| Stable Agents: LatAm | Ripio's wARS in and out: peso purchases, a peso FX channel with a refund in pesos, Unlock codes paid in pesos, and an assistant paying a freelancer exactly 1,700 and 1,200 wARS. |
+| Build with buy | Fifteen paid x402 calls from the tagged agent wallet into buy's sellers we do not control: X, Reddit, TikTok via Apify, Chainstack, Cencori. |
+| On every track | ERC-8004 agent #10063, Self Agent ID #198 on the agent wallet, the attribution tag on every transaction we send. |
+
+Honest gap: every payer so far is ours (the demo buyer and the Try it wallet); the counterparties are
+Textile's market makers, buy's sellers and Sippar.
+
 ### For people and agents holding local currency (HTTP gateway)
 
 1. `GET /catalog?currency=wARS` lists services with prices in **wARS, wBRL, wCOP or cNGN** from Textile's
