@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local402 · live on Celo</title>
+<meta name="description" content="Sip the world's data and AI in your own currency. Live Local402 activity on Celo mainnet, read straight from the chain.">
+<style>
+  :root { --bg:#0E1A38; --panel:#142140; --ink:#F4EFE6; --mute:#94A0B8; --accent:#D4A074; --ok:#7BD389; --bad:#E07A5F; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 2.1rem; margin: 8px 0 4px; letter-spacing: .02em; }
+  h1 span { color: var(--accent); }
+  .lead { font-size: 1.15rem; color: var(--ink); margin: 0 0 6px; }
+  .sub { color: var(--mute); margin: 0 0 20px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin: 18px 0; }
+  .stat { background:var(--panel); border-radius:12px; padding:14px; }
+  .stat b { display:block; font-size:1.6rem; color:var(--accent); font-family: ui-monospace, Menlo, monospace; }
+  .stat small { color:var(--mute); }
+  section { background:var(--panel); border-radius:14px; padding:16px; margin: 14px 0; }
+  h2 { font-size:1.15rem; margin:0 0 10px; }
+  ol, ul { margin: 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+  table { width:100%; border-collapse: collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid #22305a; vertical-align: top; }
+  th { color:var(--mute); font-weight:500; }
+  td.mono, .mono { font-family: ui-monospace, Menlo, monospace; font-size:.82rem; }
+  a { color: var(--accent); }
+  .tag-ok { color: var(--ok); } .tag-none { color: var(--mute); }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; background:#22305a; font-size:.78rem; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row a.btn { background:var(--accent); color:#0E1A38; text-decoration:none; padding:9px 14px; border-radius:10px; font-weight:600; }
+  .row a.ghost { background:transparent; border:1px solid var(--accent); color:var(--accent); }
+  .scroll { overflow-x:auto; }
+  footer { color:var(--mute); text-align:center; margin-top: 28px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="pill">Celo mainnet · live</div>
+  <h1>Local<span>402</span></h1>
+  <p class="lead">Sip the world's data and AI in your own currency: pesos, reais or naira, a cent at a time, with no account, no card and no ID.</p>
+  <p class="sub">Everything below is read live from the Celo blockchain in your browser. Nothing on this page is typed in by hand.</p>
+  <div class="row">
+    <a class="btn" href="https://github.com/Nuru-AI/Local402">Code and docs</a>
+    <a class="btn ghost" href="https://8004scan.io/agents/celo/10063">Agent #10063 on 8004scan</a>
+    <a class="btn ghost" href="https://celoscan.io/address/0xA781caE75185E6aBF8Efbf5E1f5bC7Eb4400D08B">Agent wallet on Celoscan</a>
+  </div>
+
+  <div class="grid" id="stats">
+    <div class="stat"><b id="s-fills">…</b><small>Textile FX fills</small></div>
+    <div class="stat"><b id="s-calls">…</b><small>paid data and AI calls (x402)</small></div>
+    <div class="stat"><b id="s-tagged">…</b><small>transactions carrying our attribution tag</small></div>
+    <div class="stat"><b id="s-local">…</b><small>local-currency payments received</small></div>
+  </div>
+
+  <section>
+    <h2>How it works</h2>
+    <ol>
+      <li><b>Pay in your own money.</b> Someone holding wARS (Ripio), wBRL, wCOP or cNGN pays once on Celo. A shop, a friend or a community group can split that credit into Unlock codes for people with no wallet at all.</li>
+      <li><b>One Textile trade opens a channel.</b> Textile FX converts the payment at a firm quote. Its trades start at about one dollar, so one trade opens a payment channel instead of paying for a single call.</li>
+      <li><b>Sip data and AI.</b> Every call is a signed voucher, with no transaction and no exchange: X, Reddit and TikTok data (via Apify), Celo RPC from Chainstack, answers from Cencori, all bought through buy over x402.</li>
+      <li><b>Close.</b> One more Textile trade returns what is left in the buyer's own currency.</li>
+    </ol>
+    <p class="sub" style="margin-top:10px">It works the other way too: through the Local402 MCP server, Claude and other assistants hire data and AI on Celo and pay people and agents in their own currency.</p>
+  </section>
+
+  <section>
+    <h2>Live activity</h2>
+    <p class="sub">The agent wallet and the demo buyer wallet (ours, funded by us, not an independent user). Tags are decoded from each transaction's calldata here, in your browser.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Time (UTC)</th><th>What happened</th><th>Amount</th><th>Tag</th><th>Tx</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5">Reading Celo…</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <footer>Built by the team behind Sippar · Building prosperity for all, one sip at a time.</footer>
+</main>
+<script>
+const GATEWAY = '0xa781cae75185e6abf8efbf5e1f5bc7eb4400d08b';
+const BUYER = '0xa9a8fdf5b540489b22b65740310d5f9b66a04328';
+const REACTOR = '0xa9aa0a64769cbed4d3b1ceb4df01cde915c235b3';
+const BUY_PAYTO = '0x20faaca5f980e29639a0fcc6dca6988e18ed333b';
+const REGISTRY = '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432';
+const LOCAL = ['WARS', 'WBRL', 'WCOP', 'CNGN'];
+const API = 'https://celo.blockscout.com/api/v2';
+const MARKER = '80218021802180218021802180218021';
+
+function decodeTag(input) {
+  const h = (input || '').toLowerCase().replace(/^0x/, '');
+  if (!h.endsWith(MARKER)) return null;
+  const body = h.slice(0, -MARKER.length);
+  const len = parseInt(body.slice(-4, -2), 16);
+  const codeHex = body.slice(-4 - len * 2, -4);
+  let s = '';
+  for (let i = 0; i < codeHex.length; i += 2) s += String.fromCharCode(parseInt(codeHex.slice(i, i + 2), 16));
+  return s;
+}
+const short = (h) => h.slice(0, 10) + '…';
+const fmt = (v, d) => (Number(v) / 10 ** Number(d)).toLocaleString('en-US', { maximumFractionDigits: 4 });
+
+async function getJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(r.status); return r.json(); }
+
+async function load() {
+  const [gTx, bTx, gTr] = await Promise.all([
+    getJSON(`${API}/addresses/${GATEWAY}/transactions?filter=from`),
+    getJSON(`${API}/addresses/${BUYER}/transactions?filter=from`),
+    getJSON(`${API}/addresses/${GATEWAY}/token-transfers?type=ERC-20`),
+  ]);
+  const sent = [...(gTx.items || []), ...(bTx.items || [])];
+  const rows = [];
+  let fills = 0, tagged = 0, calls = 0, local = 0;
+  // Our own transactions: classify and decode the tag from calldata.
+  await Promise.all(sent.map(async (t) => {
+    let input = t.raw_input;
+    if (!input) { try { input = (await getJSON(`${API}/transactions/${t.hash}`)).raw_input; } catch { input = ''; } }
+    const tag = decodeTag(input);
+    if (tag) tagged++;
+    const to = (t.to?.hash || '').toLowerCase();
+    let what = t.method || 'transaction';
+    if (to === REACTOR) { what = 'Textile FX fill (firm RFQ quote)'; fills++; }
+    else if (to === REGISTRY) what = 'ERC-8004 agent registration';
+    else if (t.method === 'approve') what = 'Approve token for Textile';
+    else if (t.method === 'transfer') what = (t.from?.hash || '').toLowerCase() === BUYER ? 'Buyer pays in local currency / moves funds' : 'Agent transfer (refund, payee settlement or demo top-up)';
+    rows.push({ ts: t.timestamp, what, amount: '', tag, hash: t.hash });
+  }));
+  // Paid x402 calls: USD₮ the agent paid to buy's facilitator payTo (submitted by the facilitator).
+  for (const x of (gTr.items || [])) {
+    const to = (x.to?.hash || '').toLowerCase(), from = (x.from?.hash || '').toLowerCase();
+    if (from === GATEWAY && to === BUY_PAYTO) {
+      calls++;
+      rows.push({ ts: x.timestamp, what: 'Paid data/AI call over x402 (via buy)', amount: `${fmt(x.total.value, x.total.decimals)} ${x.token.symbol}`, tag: 'x402', hash: x.transaction_hash });
+    }
+    if (to === GATEWAY && LOCAL.includes((x.token?.symbol || '').toUpperCase()) && Number(x.total.value) > 0) local++;
+  }
+  rows.sort((a, b) => (a.ts < b.ts ? 1 : -1));
+  document.getElementById('s-fills').textContent = fills;
+  document.getElementById('s-calls').textContent = calls + (gTr.next_page_params ? '+' : '');
+  document.getElementById('s-tagged').textContent = tagged;
+  document.getElementById('s-local').textContent = local;
+  document.getElementById('rows').innerHTML = rows.map((r) => `<tr>
+    <td class="mono">${(r.ts || '').slice(5, 19).replace('T', ' ')}</td>
+    <td>${r.what}</td>
+    <td class="mono">${r.amount}</td>
+    <td class="mono ${r.tag && r.tag !== 'x402' ? 'tag-ok' : 'tag-none'}">${r.tag === 'x402' ? 'payTo (x402 cannot carry tags yet)' : (r.tag || 'none')}</td>
+    <td class="mono"><a href="https://celoscan.io/tx/${r.hash}" target="_blank" rel="noopener">${short(r.hash)}</a></td>
+  </tr>`).join('');
+}
+load().catch((e) => { document.getElementById('rows').innerHTML = `<tr><td colspan="5">Could not read Celo right now (${e.message}). Try again in a moment.</td></tr>`; });
+</script>
+</body>
+</html>
