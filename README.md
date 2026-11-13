@@ -427,3 +427,5 @@ paid x402 calls into services we do not control. Textile's 2 bps fee went to its
 Built with [Celopedia](https://github.com/celo-org/celopedia-skills) and
 [celo-org/agent-skills](https://github.com/celo-org/agent-skills) as the agent's reference, on
 [Textile FX](https://textilecredit.com), [buy](https://usebuy.ai), [Sippar](https://sippar.network) and Celo. MIT licence.
+
+What changed and when: [CHANGELOG.md](CHANGELOG.md).
